@@ -1,0 +1,25 @@
+package io.github.nexalloy.morphe.music
+
+import io.github.nexalloy.ExtensionResourceHook
+import io.github.nexalloy.morphe.music.ad.video.HideVideoAds
+import io.github.nexalloy.morphe.music.audio.exclusiveaudio.EnableExclusiveAudioPlayback
+import io.github.nexalloy.morphe.music.layout.premium.HideGetPremium
+import io.github.nexalloy.morphe.music.layout.upgradebutton.HideUpgradeButton
+import io.github.nexalloy.morphe.music.misc.backgroundplayback.BackgroundPlayback
+import io.github.nexalloy.morphe.music.misc.debugging.EnableDebugging
+import io.github.nexalloy.morphe.music.misc.privacy.SanitizeSharingLinks
+import io.github.nexalloy.morphe.music.misc.settings.SettingsHook
+import io.github.nexalloy.morphe.shared.misc.CheckRecycleBitmapMediaSession
+
+val YTMusicPatches = arrayOf(
+    ExtensionResourceHook,
+    HideVideoAds,
+    BackgroundPlayback,
+    HideUpgradeButton,
+    HideGetPremium,
+    EnableExclusiveAudioPlayback,
+    CheckRecycleBitmapMediaSession,
+    EnableDebugging,
+    SanitizeSharingLinks,
+    SettingsHook
+)

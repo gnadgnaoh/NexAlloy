@@ -1,0 +1,56 @@
+name: Bug report
+description: File a bug/issue
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before creating a new bug report, please keep the following in mind:
+
+        - **Do not submit a duplicate bug report**: Search for existing bug reports [here](https://github.com/NexAlloy/NexAlloy/issues?q=%5BBug%5D).
+        - **Check the troubleshooting guide**: A solution to your issue might be found in the [FAQ](https://github.com/NexAlloy/NexAlloy/wiki/Frequently-Asked-Questions).
+  - type: checkboxes
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I have checked all open and closed bug reports and this is not a duplicate.
+          required: true
+        - label: I have read the FAQ.
+          required: true
+  - type: input
+    attributes:
+      label: Environment
+      description: |
+        OS version, Android version, Root manager (Magisk/KSU/APatch), LSPosed version.  
+        Example: LineageOS 21, Android 14, Magisk 29.0, JingMatrix/LSPosed-v1.10.2-7182.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Bug description
+      description: |
+        - Describe your bug in detail
+        - Add steps to reproduce the bug if possible (Step 1. ... Step 2. ...)
+        - Add images and videos if possible
+        - Include the version of the target application
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Error logs
+      description: |
+        - If You are reporting a YouTube bug, enable Debug Logging in YouTube Settings -> ReVanced Settings -> Miscellaneous -> Debugging.
+        - Reproduce the bug
+        - Open LSPosed Manager -> Logs
+        - Save logs
+        - Upload the saved zip file
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Re-acknowledgement
+      options:
+        - label: I have chosen an appropriate title.
+          required: true
+        - label: I understand that issues without necessary information will be closed without notice.
+          required: true

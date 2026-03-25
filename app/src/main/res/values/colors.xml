@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="skip_ad_button_foreground_color">#ffff</color>
+    <!-- YouTube colors referenced by Morphe settings icons -->
+    <color name="yt_white1">#FFFFFFFF</color>
+    <color name="yt_black0">#FF000000</color>
+</resources>

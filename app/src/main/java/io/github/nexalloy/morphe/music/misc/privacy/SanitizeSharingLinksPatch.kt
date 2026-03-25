@@ -1,0 +1,15 @@
+package io.github.nexalloy.morphe.music.misc.privacy
+
+import io.github.nexalloy.patch
+import io.github.nexalloy.morphe.music.misc.settings.PreferenceScreen
+import io.github.nexalloy.morphe.shared.misc.privacy.SanitizeSharingLinks
+
+val SanitizeSharingLinks = patch(
+    name = "Sanitize sharing links",
+    description = "Removes the tracking query parameters from shared links."
+) {
+    SanitizeSharingLinks(
+        preferenceScreen = PreferenceScreen.MISC,
+        replaceMusicLinksWithYouTube = true
+    )
+}

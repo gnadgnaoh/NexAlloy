@@ -1,0 +1,63 @@
+package io.github.nexalloy.morphe.reddit.ad.general
+
+import app.morphe.extension.shared.Logger
+import io.github.nexalloy.findFieldByExactType
+import io.github.nexalloy.getObjectField
+import io.github.nexalloy.patch
+import io.github.nexalloy.morphe.reddit.ad.banner.HideBanner
+import io.github.nexalloy.morphe.reddit.ad.comments.HideCommentAds
+import io.github.nexalloy.setObjectField
+
+val HideAds = patch(
+    name = "Hide ads",
+) {
+    dependsOn(
+        HideBanner, HideCommentAds
+    )
+    // region Filter promoted ads (does not work in popular or latest feed)
+    ::adPostFingerprint.hookMethod {
+        val iLink = classLoader.loadClass("com.reddit.domain.model.ILink")
+        val getPromoted = iLink.methods.single { it.name == "getPromoted" }
+        after { param ->
+            val arrayList = param.thisObject.getObjectField("children") as Iterable<Any?>
+            val result = mutableListOf<Any?>()
+            var filtered = 0
+            for (item in arrayList) {
+                try {
+                    if (item != null && iLink.isAssignableFrom(item.javaClass) && getPromoted(item) == true) {
+                        filtered++
+                        continue
+                    }
+                } catch (_: Throwable) {
+                    Logger.printDebug { "not iLink, keep it" }
+                    // not iLink, keep it
+                }
+                result.add(item)
+            }
+            Logger.printDebug { "Filtered $filtered ads in ${arrayList.count()} posts" }
+            param.thisObject.setObjectField("children", result)
+        }
+    }
+
+    // endregion
+
+    // region Remove ads from popular and latest feed
+
+    // The new feeds work by inserting posts into lists.
+    // AdElementConverter is conveniently responsible for inserting all feed ads.
+    // By removing the appending instruction no ad posts gets appended to the feed.
+    ::AdPostSectionInitFingerprint.hookMethod {
+        val arg = ::AdPostSectionInitFingerprint.constructor.parameters.indexOfFirst {
+            MutableList::class.java.isAssignableFrom(it.type)
+        }
+        Logger.printInfo { "AdPostSection sections arg index: $arg" }
+        before { param ->
+            val sections = param.args[arg] as MutableList<*>
+            sections.javaClass.findFieldByExactType(Array<Any>::class.java)!!
+                .set(sections, emptyArray<Any>())
+            Logger.printDebug { "Removed ads from popular and latest feed" }
+        }
+    }
+
+    // endregion
+}

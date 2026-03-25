@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="scope">
+        <item>com.google.android.apps.youtube.music</item>
+        <item>com.google.android.youtube</item>
+        <item>com.reddit.frontpage</item>
+    </string-array>
+</resources>

@@ -1,0 +1,57 @@
+package io.github.nexalloy.morphe.youtube.misc.playercontrols
+
+import io.github.nexalloy.morphe.AccessFlags
+import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.ResourceType
+import io.github.nexalloy.morphe.fingerprint
+import io.github.nexalloy.morphe.methodCall
+import io.github.nexalloy.morphe.resourceLiteral
+import io.github.nexalloy.morphe.resourceMappings
+
+val fullscreen_button_id get() = resourceMappings["id", "fullscreen_button"]
+val heatseeker_viewstub_id get() = resourceMappings["id", "heatseeker_viewstub"]
+
+private object YoutubeControlsOverlayFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf(),
+    filters = listOf(
+        methodCall(name = "setFocusableInTouchMode"),
+        resourceLiteral(ResourceType.ID, "inset_overlay_view_layout"),
+        resourceLiteral(ResourceType.ID, "scrim_overlay"),
+    )
+)
+
+internal object MotionEventFingerprint : Fingerprint(
+    classFingerprint = YoutubeControlsOverlayFingerprint,
+    returnType = "V",
+    parameters = listOf("Landroid/view/MotionEvent;"),
+    filters = listOf(
+        methodCall(name = "setTranslationY")
+    )
+)
+
+object PlayerTopControlsInflateFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "V",
+    parameters = listOf(),
+    filters = listOf(
+        resourceLiteral(ResourceType.ID, "controls_layout_stub")
+    )
+)
+
+val overlayViewInflateFingerprint = fingerprint {
+    accessFlags(AccessFlags.PUBLIC, AccessFlags.FINAL)
+    returns("V")
+    parameters("Landroid/view/View;")
+    methodMatcher {
+        addUsingNumber(fullscreen_button_id)
+        addUsingNumber(heatseeker_viewstub_id)
+    }
+}
+
+object ControlsOverlayVisibilityFingerprint : Fingerprint(
+    classFingerprint = PlayerTopControlsInflateFingerprint,
+    accessFlags = listOf(AccessFlags.PRIVATE, AccessFlags.FINAL),
+    returnType = "V",
+    parameters = listOf("Z", "Z"),
+)

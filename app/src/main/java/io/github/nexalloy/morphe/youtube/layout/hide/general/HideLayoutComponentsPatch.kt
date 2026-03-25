@@ -1,0 +1,397 @@
+@file:Suppress("LocalVariableName")
+
+package io.github.nexalloy.morphe.youtube.layout.hide.general
+
+import android.view.View
+import app.morphe.extension.shared.ResourceUtils.getDimenIdentifier
+import app.morphe.extension.shared.ResourceUtils.getIdIdentifier
+import app.morphe.extension.shared.ResourceUtils.getLayoutIdentifier
+import app.morphe.extension.shared.settings.preference.BulletPointPreference
+import app.morphe.extension.shared.settings.preference.BulletPointSwitchPreference
+import app.morphe.extension.youtube.patches.components.CommentsFilter
+import app.morphe.extension.youtube.patches.components.CustomFilter
+import app.morphe.extension.youtube.patches.components.DescriptionComponentsFilter
+import app.morphe.extension.youtube.patches.components.HorizontalShelvesFilter
+import app.morphe.extension.youtube.patches.components.KeywordContentFilter
+import app.morphe.extension.youtube.patches.components.LayoutComponentsFilter
+import app.morphe.extension.youtube.settings.preference.HTMLPreference
+import io.github.nexalloy.new
+import io.github.nexalloy.patch
+import io.github.nexalloy.scopedHook
+import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
+import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractivePreference
+import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
+import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference.Sorting
+import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
+import io.github.nexalloy.morphe.shared.misc.settings.preference.TextPreference
+import io.github.nexalloy.morphe.youtube.misc.litho.filter.LithoFilter
+import io.github.nexalloy.morphe.youtube.misc.litho.filter.addLithoFilter
+import io.github.nexalloy.morphe.youtube.misc.litho.filter.emptyComponentClass
+import io.github.nexalloy.morphe.youtube.misc.litho.filter.featureFlagCheck
+import io.github.nexalloy.morphe.youtube.misc.litho.lazily.LazilyConvertedElementHook
+import io.github.nexalloy.morphe.youtube.misc.litho.lazily.hookTreeNodeResult
+import io.github.nexalloy.morphe.youtube.misc.navigation.NavigationBarHook
+import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
+import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import org.luckypray.dexkit.wrap.DexMethod
+
+val hideHorizontalShelvesPatch = patch {
+    addLithoFilter(HorizontalShelvesFilter())
+}
+
+val HideLayoutComponents = patch(
+    name = "Hide layout components",
+    description = "Adds options to hide general layout components.",
+) {
+    dependsOn(
+        LithoFilter,
+        NavigationBarHook,
+        VersionCheck,
+        LazilyConvertedElementHook,
+        hideHorizontalShelvesPatch
+    )
+
+    PreferenceScreen.ADS.addPreferences(
+        // Uses horizontal shelf and a buffer, which requires managing in a single place in the code
+        // to ensure the generic "hide horizontal shelves" doesn't hide when it should show.
+        SwitchPreference("morphe_hide_creator_store_shelf")
+    )
+
+    PreferenceScreen.PLAYER.addPreferences(
+        PreferenceScreenPreference(
+            key = "morphe_hide_description_components_screen",
+            preferences = setOf(
+                SwitchPreference("morphe_hide_ai_generated_video_summary_section"),
+                SwitchPreference("morphe_hide_ask_section"),
+                SwitchPreference("morphe_hide_attributes_section"),
+                SwitchPreference("morphe_hide_chapters_section"),
+                SwitchPreference("morphe_hide_course_progress_section"),
+                SwitchPreference("morphe_hide_explore_section"),
+                SwitchPreference("morphe_hide_explore_course_section"),
+                SwitchPreference("morphe_hide_explore_podcast_section"),
+                SwitchPreference("morphe_hide_featured_links_section"),
+                SwitchPreference("morphe_hide_featured_places_section"),
+                SwitchPreference("morphe_hide_featured_videos_section"),
+                SwitchPreference("morphe_hide_gaming_section"),
+                SwitchPreference("morphe_hide_how_this_was_made_section"),
+                SwitchPreference("morphe_hide_hype_points"),
+                SwitchPreference("morphe_hide_info_cards_section"),
+                SwitchPreference("morphe_hide_key_concepts_section"),
+                SwitchPreference("morphe_hide_music_section"),
+                SwitchPreference("morphe_hide_subscribe_button"),
+                SwitchPreference("morphe_hide_transcript_section"),
+                SwitchPreference("morphe_hide_quizzes_section"),
+            ),
+        ),
+        PreferenceScreenPreference(
+            "morphe_comments_screen",
+            preferences = setOf(
+//                PreferenceCategory(
+//                    titleKey = null,
+//                    sorting = Sorting.UNSORTED,
+//                    tag = app.morphe.extension.shared.settings.preference.NoTitlePreferenceCategory::class.java,
+//                    preferences = setOf(
+//                        SwitchPreference("morphe_hide_comments_carousel"),
+//                        TextPreference(
+//                            "morphe_hide_comments_carousel_filter_strings",
+//                            inputType = InputType.TEXT_MULTI_LINE
+//                        ),
+//                    )
+//                ),
+                SwitchPreference("morphe_hide_comments_ai_chat_summary"),
+                SwitchPreference("morphe_hide_comments_channel_guidelines"),
+                SwitchPreference("morphe_hide_comments_prompts"),
+                SwitchPreference("morphe_hide_comments_by_members_header"),
+                SwitchPreference("morphe_hide_comments_section"),
+                SwitchPreference("morphe_hide_comments_section_in_home_feed"),
+                SwitchPreference("morphe_hide_comments_community_guidelines"),
+                SwitchPreference("morphe_hide_comments_create_a_short_button"),
+                SwitchPreference("morphe_hide_comments_emoji_and_timestamp_buttons"),
+                SwitchPreference("morphe_hide_comments_info_button"),
+                SwitchPreference("morphe_hide_comments_preview_comment"),
+                SwitchPreference("morphe_hide_comments_thanks_button"),
+                SwitchPreference("morphe_sanitize_comments_category_bar"),
+            ),
+            sorting = Sorting.UNSORTED,
+        ),
+        SwitchPreference("morphe_hide_channel_bar"),
+        SwitchPreference("morphe_hide_channel_watermark"),
+        SwitchPreference("morphe_hide_crowdfunding_box"),
+        SwitchPreference("morphe_hide_emergency_box"),
+        SwitchPreference("morphe_hide_info_panels"),
+        SwitchPreference("morphe_hide_join_membership_button"),
+        SwitchPreference("morphe_hide_live_chat_replay_button"),
+        SwitchPreference("morphe_hide_medical_panels"),
+        SwitchPreference("morphe_hide_quick_actions"),
+        SwitchPreference("morphe_hide_quick_actions_related_videos"),
+        SwitchPreference("morphe_hide_subscribers_community_guidelines"),
+        SwitchPreference("morphe_hide_timed_reactions"),
+        SwitchPreference("morphe_hide_video_title"),
+    )
+
+    PreferenceScreen.FEED.addPreferences(
+        PreferenceScreenPreference(
+            key = "morphe_hide_keyword_content_screen",
+            sorting = Sorting.UNSORTED,
+            preferences = setOf(
+                SwitchPreference("morphe_hide_keyword_content_home"),
+                SwitchPreference("morphe_hide_keyword_content_subscriptions"),
+                SwitchPreference("morphe_hide_keyword_content_search"),
+                TextPreference("morphe_hide_keyword_content_phrases", inputType = InputType.TEXT_MULTI_LINE),
+                NonInteractivePreference(
+                    key = "morphe_hide_keyword_content_about",
+                    tag = BulletPointPreference::class.java
+                ),
+                NonInteractivePreference(
+                    key = "morphe_hide_keyword_content_about_whole_words",
+                    tag = HTMLPreference::class.java,
+                ),
+            ),
+        ),
+        PreferenceScreenPreference(
+            key = "morphe_hide_filter_bar_screen",
+            preferences = setOf(
+                SwitchPreference("morphe_hide_filter_bar_feed_in_feed"),
+                SwitchPreference("morphe_hide_filter_bar_feed_in_related_videos"),
+                SwitchPreference("morphe_hide_filter_bar_feed_in_search"),
+                SwitchPreference("morphe_hide_filter_bar_feed_in_history"),
+            ),
+        ),
+        PreferenceScreenPreference(
+            key = "morphe_channel_screen",
+            preferences = setOf(
+//                PreferenceCategory(
+//                    titleKey = null,
+//                    sorting = Sorting.UNSORTED,
+//                    tag = app.morphe.extension.shared.settings.preference.NoTitlePreferenceCategory::class.java,
+//                    preferences = setOf(
+//                        SwitchPreference("morphe_hide_channel_tab"),
+//                        TextPreference(
+//                            "morphe_hide_channel_tab_filter_strings",
+//                            inputType = InputType.TEXT_MULTI_LINE
+//                        ),
+//                    )
+//                ),
+                SwitchPreference("morphe_hide_community_button"),
+                SwitchPreference("morphe_hide_join_button"),
+                SwitchPreference("morphe_hide_links_preview"),
+                SwitchPreference("morphe_hide_members_shelf"),
+                SwitchPreference("morphe_hide_store_button"),
+                SwitchPreference("morphe_hide_subscribe_button_in_channel_page"),
+            ),
+        ),
+        SwitchPreference("morphe_hide_album_cards"),
+        SwitchPreference("morphe_hide_artist_cards"),
+        SwitchPreference("morphe_hide_chips_shelf"),
+        SwitchPreference("morphe_hide_community_posts"),
+        SwitchPreference("morphe_hide_compact_banner"),
+        SwitchPreference("morphe_hide_expandable_card"),
+//        PreferenceCategory(
+//            titleKey = null,
+//            sorting = Sorting.UNSORTED,
+//            tag = app.morphe.extension.shared.settings.preference.NoTitlePreferenceCategory::class.java,
+//            preferences = setOf(
+//                SwitchPreference("morphe_hide_feed_flyout_menu"),
+//                TextPreference(
+//                    "morphe_hide_feed_flyout_menu_filter_strings",
+//                    inputType = InputType.TEXT_MULTI_LINE
+//                ),
+//            )
+//        ),
+//        SwitchPreference("morphe_hide_floating_microphone_button"),
+        SwitchPreference(
+            key = "morphe_hide_horizontal_shelves",
+            tag = BulletPointSwitchPreference::class.java
+        ),
+        SwitchPreference("morphe_hide_image_shelf"),
+        SwitchPreference("morphe_hide_latest_posts"),
+        SwitchPreference("morphe_hide_latest_videos_button"),
+        SwitchPreference("morphe_hide_mix_playlists"),
+        SwitchPreference("morphe_hide_movies_section"),
+        SwitchPreference("morphe_hide_notify_me_button"),
+        SwitchPreference("morphe_hide_playables"),
+//        SwitchPreference("morphe_hide_show_more_button"),
+        SwitchPreference("morphe_hide_subscribed_channels_bar"),
+        SwitchPreference("morphe_hide_surveys"),
+        SwitchPreference("morphe_hide_ticket_shelf"),
+//        SwitchPreference("morphe_hide_upload_time"),
+        SwitchPreference("morphe_hide_video_recommendation_labels"),
+//        SwitchPreference("morphe_hide_view_count"),
+        SwitchPreference("morphe_hide_web_search_results"),
+//        SwitchPreference("morphe_hide_doodles"),
+    )
+
+//    if (is_20_21_or_greater) {
+//        PreferenceScreen.FEED.addPreferences(
+//            SwitchPreference("morphe_hide_you_may_like_section")
+//        )
+//    }
+
+    PreferenceScreen.GENERAL.addPreferences(
+        PreferenceScreenPreference(
+            key = "morphe_custom_filter_screen",
+            sorting = Sorting.UNSORTED,
+            preferences = setOf(
+                SwitchPreference("morphe_custom_filter"),
+                TextPreference(
+                    "morphe_custom_filter_strings",
+                    inputType = InputType.TEXT_MULTI_LINE
+                ),
+            ),
+        ),
+    )
+
+    addLithoFilter(LayoutComponentsFilter())
+    addLithoFilter(DescriptionComponentsFilter())
+    addLithoFilter(CommentsFilter())
+    addLithoFilter(KeywordContentFilter())
+    addLithoFilter(CustomFilter())
+    hookTreeNodeResult { identifier, list ->
+        CommentsFilter.sanitizeCommentsCategoryBar(identifier, list)
+    }
+
+    // region hide mix playlists
+
+    ParseElementFromBufferFingerprint.hookMethod({
+        val emptyComponent = ::emptyComponentClass.clazz.new()
+        after {
+            val bytes = it.args[2] as ByteArray
+            if (LayoutComponentsFilter.filterMixPlaylists(bytes)) {
+                it.result = emptyComponent
+            }
+        }
+    })
+
+    // endregion
+
+    // region hide watermark (legacy code for old versions of YouTube)
+
+    ShowWatermarkFingerprint.hookMethod(scopedHook(::showWatermarkSubFingerprint.member) {
+        before { it.args[1] = LayoutComponentsFilter.showWatermark() }
+    })
+
+    // endregion
+
+    // TODO hide show more button
+
+    // hide subscribed channels bar
+    //  Tablet: id.parent_container
+    //  Phone (landscape mode): dimen.parent_view_width_in_wide_mode
+
+    // hide album cards
+    // layout.album_card
+
+    // hide comments carousel
+    // TODO depends on elementProtoParserHookPatch
+    // hookElement("$COMMENTS_FILTER_CLASS_NAME->onCommentsLoaded([B)[B")
+
+    // hide comments info button
+    // id.information_button
+
+    // hide crowdfunding box
+    // layout.donation_companion
+
+    // TODO hide floating microphone — ShowFloatingMicrophoneButtonFingerprint METHOD_MID
+
+    // hide latest videos button
+    // layout.content_pill
+    // layout.bar
+
+    // TODO hide YouTube Doodles — YouTubeDoodlesImageViewFingerprint METHOD_MID (replace setImageDrawable)
+
+    // TODO hide view count — HideViewCountFingerprint METHOD_MID (modifyFeedSubtitleSpan)
+
+    // region hide filter bar
+    // dimen.filter_bar_height
+    // dimen.bar_container_height
+    // dimen.watch_next_chip_bar_height
+
+    ::featureFlagCheck.hookMethod {
+        after {
+            if (it.args[0] == 45682279L)
+                it.result = LayoutComponentsFilter.hideInRelatedVideos(it.result as Boolean)
+        }
+    }
+    // id.related_chip_cloud
+
+    // endregion
+
+    // TODO hide you may like section — SearchSuggestionEndpoint/SearchBoxTypingString METHOD_MID (complex helper)
+
+    // region TODO hide flyout menu
+/*
+
+    BottomSheetMenuItemBuilderFingerprint.hookMethod(scopedHook(::bottomSheetMenuItemTextFingerprint.member) {
+        after {
+            it.result = LayoutComponentsFilter.hideFlyoutMenu(it.result as CharSequence?)
+        }
+    })
+
+    ContextualMenuItemBuilderFingerprint.hookMethod(scopedHook(::contextualMenuItemTextFingerprint.member) {
+        val textViewField = ::contextualMenuItemTextViewField.field
+        after {
+            val textView = textViewField.get(outerParam.thisObject) as TextView?
+            val text = it.result as CharSequence?
+            it.result = LayoutComponentsFilter.hideFlyoutMenu(textView, text)
+        }
+    })
+*/
+
+    // endregion
+
+    // TODO hide channel tab — ChannelTabBuilder/ChannelTabRenderer METHOD_MID (iterator manipulation)
+
+
+    // id hook
+    DexMethod("Landroid/view/ViewGroup;->findViewById(I)Landroid/view/View;").hookMethod {
+        val parent_container = getIdIdentifier("parent_container")
+        val information_button = getIdIdentifier("information_button")
+        val related_chip_cloud = getIdIdentifier("related_chip_cloud")
+        after {
+            val id = it.args[0] as Int
+            val view = it.result as? View ?: return@after
+            when (id) {
+                parent_container -> LayoutComponentsFilter.hideSubscribedChannelsBar(view)
+                information_button -> CommentsFilter.hideCommentsInfoButton(view)
+                related_chip_cloud -> LayoutComponentsFilter.hideInRelatedVideos(view)
+            }
+        }
+    }
+
+    // layout hook
+    DexMethod("Landroid/view/LayoutInflater;->inflate(ILandroid/view/ViewGroup;)Landroid/view/View;").hookMethod {
+        val donation_companion = getLayoutIdentifier("donation_companion")
+        val album_card = getLayoutIdentifier("album_card")
+        val content_pill = getLayoutIdentifier("content_pill")
+        val bar = getLayoutIdentifier("bar")
+        val related_chip_cloud_reduced_margins = getLayoutIdentifier("related_chip_cloud_reduced_margins")
+        after {
+            val view = it.result as View
+            when (it.args[0] as Int) {
+                donation_companion -> LayoutComponentsFilter.hideCrowdfundingBox(view)
+                album_card -> LayoutComponentsFilter.hideAlbumCard(view)
+                content_pill, bar -> LayoutComponentsFilter.hideLatestVideosButton(view)
+                related_chip_cloud_reduced_margins -> LayoutComponentsFilter.hideInRelatedVideos(view)
+            }
+        }
+    }
+
+    // getDimensionPixelSize hook
+    DexMethod("Landroid/content/res/Resources;->getDimensionPixelSize(I)I").hookMethod {
+        val filter_bar_height = getDimenIdentifier("filter_bar_height")
+        val bar_container_height = getDimenIdentifier("bar_container_height")
+        val parent_view_width_in_wide_mode = getDimenIdentifier("parent_view_width_in_wide_mode")
+        val watch_next_chip_bar_height = getDimenIdentifier("watch_next_chip_bar_height")
+        after {
+            val id = it.result as Int
+            if (id == 0)  return@after
+            it.result = when (it.args[0]) {
+                filter_bar_height -> LayoutComponentsFilter.hideInFeed(id)
+                bar_container_height -> LayoutComponentsFilter.hideInSearch(id)
+                parent_view_width_in_wide_mode -> LayoutComponentsFilter.hideSubscribedChannelsBar(id)
+                watch_next_chip_bar_height -> LayoutComponentsFilter.hideInRelatedVideos(id)
+                else -> return@after
+            }
+        }
+    }
+}

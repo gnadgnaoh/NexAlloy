@@ -1,0 +1,35 @@
+[versions]
+agp = "9.1.0"
+dexkit = "2.1.0"
+xposed = "82"
+annotation = "1.9.1"
+gson = "2.13.2"
+kotlinxCoroutinesAndroid = "1.10.2"
+fuel = "3.0.0-alpha04"
+junit = "6.0.3"
+jadx = "1.5.5"
+slf4j = "2.0.17"
+
+androidx-javascriptengine = "1.1.0-alpha01"
+protobuf = "0.9.6"
+protoc = "4.34.0"
+
+[libraries]
+dexkit = { group = "org.luckypray", name = "dexkit", version.ref = "dexkit" }
+xposed = { group = "de.robv.android.xposed", name = "api", version.ref = "xposed" }
+annotation = { group = "androidx.annotation", name = "annotation", version.ref = "annotation" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
+fuel = { group = "com.github.kittinunf.fuel", name = "fuel", version.ref = "fuel" }
+junit-jupiter-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "junit" }
+jadx-core = { group = "io.github.skylot", name = "jadx-core", version.ref = "jadx" }
+slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
+protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protoc" }
+protobuf-protoc = { module = "com.google.protobuf:protoc", version.ref = "protoc" }
+androidx-javascriptengine = { module = "androidx.javascriptengine:javascriptengine", version.ref = "androidx-javascriptengine" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+
+protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingClass">
+
+    <FrameLayout
+        android:id="@+id/morphe_playback_speed_dialog_button_container"
+        android:layout_width="48.0dip"
+        android:layout_height="60.0dip">
+
+        <com.google.android.libraries.youtube.common.ui.TouchImageView
+            android:id="@+id/morphe_playback_speed_dialog_button"
+            style="@style/YouTubePlayerButton"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:longClickable="false"
+            android:paddingTop="6.0dp"
+            android:paddingBottom="0dp"
+            android:scaleType="center"
+            android:src="@drawable/morphe_playback_speed_dialog_button_rectangle" />
+
+        <TextView
+            android:id="@+id/morphe_playback_speed_dialog_button_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:fontFamily="sans-serif-condensed"
+            android:paddingTop="5.5dp"
+            android:textColor="@android:color/white"
+            android:textSize="10dp" />
+    </FrameLayout>
+
+</merge>

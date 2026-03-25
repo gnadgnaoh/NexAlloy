@@ -1,0 +1,46 @@
+name: Android Release CI
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Write key
+      run: |
+        echo KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }} > signing.properties
+        echo KEYSTORE_ALIAS=${{ secrets.KEYSTORE_ALIAS }} >> signing.properties
+        echo KEYSTORE_ALIAS_PASSWORD='${{ secrets.KEYSTORE_ALIAS_PASSWORD }}' >> signing.properties
+        echo KEYSTORE_FILE=../key.jks >> signing.properties
+        echo ${{ secrets.KEYSTORE }} | base64 --decode > key.jks
+
+    - name: Build Release
+      run: ./gradlew assembleRelease
+
+    - run: |
+        cd app/build/outputs/apk/release/
+        mv app-release.apk NexAlloy-${{ github.ref_name }}.apk
+        gh release create --prerelease ${{ github.ref_name }} NexAlloy-${{ github.ref_name }}.apk
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

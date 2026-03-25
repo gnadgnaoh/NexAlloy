@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingClass">
+
+    <com.google.android.libraries.youtube.common.ui.TouchImageView
+        android:id="@+id/morphe_copy_video_url_button"
+        android:layout_width="48.0dip"
+        android:layout_height="60.0dip"
+        style="@style/YouTubePlayerButton"
+        android:paddingTop="6.0dp"
+        android:paddingBottom="0dp"
+        android:scaleType="center"
+        android:src="@drawable/morphe_yt_copy" />
+
+    <com.google.android.libraries.youtube.common.ui.TouchImageView
+        android:id="@+id/morphe_copy_video_url_timestamp_button"
+        android:layout_width="48.0dip"
+        android:layout_height="60.0dip"
+        style="@style/YouTubePlayerButton"
+        android:paddingTop="6.0dp"
+        android:paddingBottom="0dp"
+        android:scaleType="center"
+        android:src="@drawable/morphe_yt_copy_timestamp" />
+</merge>

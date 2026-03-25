@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><!--suppress ALL -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <Preference
+        android:key="morphe_settings"
+        android:title="Morphe">
+        <intent
+            android:data="morphe_settings_intent"
+            android:targetClass="com.google.android.gms.common.api.GoogleApiActivity"
+            android:targetPackage="com.google.android.apps.youtube.music" />
+    </Preference>
+</PreferenceScreen>
