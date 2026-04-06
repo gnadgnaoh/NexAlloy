@@ -77,8 +77,8 @@ class SettingsActivity : Activity() {
             Utils.setContext(context)
 
             Preference(context).apply {
-                summary = "This app uses code from Morphe. To learn more, visit http://morphe.software"
-                intent = Intent(Intent.ACTION_VIEW, Uri.parse("http://morphe.software"))
+                summary = "This app uses code from Morphe. To learn more, visit https://morphe.software"
+                intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://morphe.software"))
                 rootScreen.addPreference(this)
             }
 
