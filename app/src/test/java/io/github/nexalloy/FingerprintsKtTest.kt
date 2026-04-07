@@ -19,12 +19,9 @@ import kotlin.system.measureTimeMillis
 @ParameterizedClass
 @ArgumentsSource(FilePathArgumentsProvider::class)
 class FingerprintsKtTest(val apkPath: Path) {
-    init {
-        TestSetup.setupForApk(apkPath.toString())
-    }
-
-    val dexkit: DexKitBridge = TestSetup.dexkit.get()!!
-    val appVersion: AppVersion = TestSetup.appVersion.get()!!
+    val context = ApkContext(apkPath.toString())
+    val dexkit: DexKitBridge = context.dexkit
+    val appVersion: AppVersion = context.appVersion
 
     // region Test runner
 
@@ -93,6 +90,7 @@ class FingerprintsKtTest(val apkPath: Path) {
      * - object : Fingerprint(...) declarations in the same package
      */
     fun testFingerprints(app: String, packageName: String) {
+        context.setupCurrentThread()
         errors.clear()
 
         val classLoader = Thread.currentThread().contextClassLoader!!
@@ -119,6 +117,7 @@ class FingerprintsKtTest(val apkPath: Path) {
     private fun testValProperties(app: String, clazz: Class<*>) {
         clazz.methods.asSequence()
             .filter { it.isStatic }
+            .sortedBy { it.name }
             .forEach { method ->
                 val name = method.name.drop(3) // drop "get" prefix
                 if (shouldSkip(name, method.annotations, app)) return@forEach
@@ -132,7 +131,7 @@ class FingerprintsKtTest(val apkPath: Path) {
      * Test `object : Fingerprint(...)` declarations in [packageName].
      */
     private fun testFingerprintObjects(app: String, packageName: String, classLoader: ClassLoader) {
-        for (className in findClassNamesInPackage(packageName, classLoader)) {
+        for (className in findClassNamesInPackage(packageName, classLoader).sorted()) {
             val cls = try {
                 classLoader.loadClass(className)
             } catch (_: ClassNotFoundException) {

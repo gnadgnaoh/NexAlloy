@@ -12,41 +12,49 @@ import org.luckypray.dexkit.DexKitBridge
 import java.io.File
 import java.util.EnumSet
 
-object TestSetup {
-    var lastApkPath = ThreadLocal<String>()
-    val dexkit = ThreadLocal<DexKitBridge>()
-    val jadx = ThreadLocal<JadxDecompiler>()
-    val jadxResourceReader = ThreadLocal<JadxResourceReader>()
-    val appVersion = ThreadLocal<AppVersion>()
+class ApkContext(apkPath: String) {
+    val dexkit: DexKitBridge
+    val jadx: JadxDecompiler
+    val appVersion: AppVersion
 
     init {
-        resourceMappings = object : ResourceFinder {
-            override operator fun get(type: String, name: String): Int =
-                jadxResourceReader.get()!![type, name]
+        dexkit = setupDexKit(apkPath)
+        jadx = setupJadx(apkPath)
+        appVersion = jadx.getAppVersion()
+    }
+
+    companion object {
+        val jadxResourceReader = ThreadLocal<JadxResourceReader>()
+
+        init {
+            resourceMappings = object : ResourceFinder {
+                override operator fun get(type: String, name: String): Int =
+                    jadxResourceReader.get()!![type, name]
+            }
         }
     }
 
-    private fun setupDexKit(apkPath: String) {
+    fun setupCurrentThread() {
+        jadxResourceReader.set(JadxResourceReader(jadx))
+    }
+
+    private fun setupDexKit(apkPath: String): DexKitBridge {
         try {
             System.loadLibrary("dexkit")
         } catch (_: UnsatisfiedLinkError) {
             System.loadLibrary("libdexkit")
         }
-
-        dexkit.set(DexKitBridge.create(apkPath))
+        return DexKitBridge.create(apkPath)
     }
 
-    private fun setupJadx(apkPath: String) {
+    private fun setupJadx(apkPath: String): JadxDecompiler {
         val jadxArgs = JadxArgs().apply {
             setInputFile(File(apkPath))
             security = JadxSecurity(JadxSecurityFlag.none())
         }
         val jadx = JadxDecompiler(jadxArgs)
         jadx.load()
-        this.jadx.set(jadx)
-
-        this.jadxResourceReader.set(JadxResourceReader(jadx))
-        this.appVersion.set(jadx.getAppVersion())
+        return jadx
     }
 
     private fun JadxDecompiler.getAppVersion(): AppVersion {
@@ -56,13 +64,5 @@ object TestSetup {
             JadxSecurity(JadxSecurityFlag.none())
         )
         return AppVersion(manifest.parse().versionName)
-    }
-
-    fun setupForApk(apkPath: String) {
-        if (lastApkPath.get() == apkPath) return
-
-        setupDexKit(apkPath)
-        setupJadx(apkPath)
-        lastApkPath.set(apkPath)
     }
 }
