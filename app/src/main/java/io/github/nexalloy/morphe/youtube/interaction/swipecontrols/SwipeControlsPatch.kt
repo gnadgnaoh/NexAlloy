@@ -2,7 +2,6 @@ package io.github.nexalloy.morphe.youtube.interaction.swipecontrols
 
 import app.morphe.extension.shared.settings.preference.ColorPickerWithOpacitySliderPreference
 import app.morphe.extension.youtube.swipecontrols.SwipeControlsHostActivity
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
 import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
@@ -10,6 +9,7 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.TextPreference
 import io.github.nexalloy.morphe.youtube.misc.playertype.PlayerTypeHook
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.morphe.youtube.shared.mainActivityClass
+import io.github.nexalloy.patch
 
 val SwipeControls = patch(
     name = "Swipe controls",
@@ -19,7 +19,7 @@ val SwipeControls = patch(
         PlayerTypeHook,
     )
 
-//    if (is_19_43_or_greater) {
+//    if (!is_20_34_or_greater) {
 //        PreferenceScreen.SWIPE_CONTROLS.addPreferences(
 //            SwitchPreference("morphe_swipe_change_video")
 //        )

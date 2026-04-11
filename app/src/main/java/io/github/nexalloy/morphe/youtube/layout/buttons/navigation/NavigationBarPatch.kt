@@ -2,8 +2,6 @@ package io.github.nexalloy.morphe.youtube.layout.buttons.navigation
 
 import android.widget.TextView
 import app.morphe.extension.youtube.patches.NavigationBarPatch
-import io.github.nexalloy.patch
-import io.github.nexalloy.scopedHook
 import io.github.nexalloy.morphe.shared.misc.debugging.experimentalBooleanFeatureFlagFingerprint
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference.Sorting
@@ -11,12 +9,14 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreferenc
 import io.github.nexalloy.morphe.youtube.misc.navigation.NavigationBarHook
 import io.github.nexalloy.morphe.youtube.misc.navigation.hookNavigationButtonCreated
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
-import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_15_or_greater
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_31_or_greater
 import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_46_or_greater
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import io.github.nexalloy.patch
+import io.github.nexalloy.scopedHook
 import org.luckypray.dexkit.wrap.DexMethod
 
-val NavigationButtons = patch(
+val NavigationBar = patch(
     name = "Navigation bar",
     description = "Adds options to hide and change the bottom navigation bar (such as the Shorts button)" +
             " and the upper navigation toolbar.",
@@ -47,8 +47,10 @@ val NavigationButtons = patch(
         SwitchPreference("morphe_disable_translucent_status_bar")
     )
 
-    if (is_20_15_or_greater) {
-        navPreferences += SwitchPreference("morphe_navigation_bar_animations")
+    navPreferences += SwitchPreference("morphe_navigation_bar_animations")
+
+    if (is_20_31_or_greater) {
+        navPreferences += SwitchPreference("morphe_disable_auto_hide_navigation_bar")
     }
 
     PreferenceScreen.GENERAL.addPreferences(
@@ -60,11 +62,12 @@ val NavigationButtons = patch(
     )
 
     // Swap create with notifications button.
-    // Morphe uses addOSNameHook(Endpoint.GUIDE, ...) which depends on clientContextHookPatch.
+    // TODO Morphe uses addOSNameHook(Endpoint.GUIDE, ...) which depends on clientContextHookPatch.
     // Alternative: scopedHook on AutoMotiveFeatureMethod.
     ::addCreateButtonViewFingerprint.hookMethod(scopedHook(::AutoMotiveFeatureMethod.member) {
         before { param ->
-            param.result = NavigationBarPatch.swapCreateWithNotificationButton("") == "Android Automotive"
+            param.result =
+                NavigationBarPatch.swapCreateWithNotificationButton("") == "Android Automotive"
         }
     })
 
@@ -99,14 +102,12 @@ val NavigationButtons = patch(
         }
     }
 
-    if (is_20_15_or_greater) {
-        ::experimentalBooleanFeatureFlagFingerprint.hookMethod {
-            after {
-                // Animated navigation tabs.
-                if (it.args[1] == 45680008L) {
-                    it.result =
-                        NavigationBarPatch.useAnimatedNavigationButtons(it.result as Boolean)
-                }
+    ::experimentalBooleanFeatureFlagFingerprint.hookMethod {
+        after {
+            // Animated navigation tabs.
+            if (it.args[1] == 45680008L) {
+                it.result =
+                    NavigationBarPatch.useAnimatedNavigationButtons(it.result as Boolean)
             }
         }
     }

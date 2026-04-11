@@ -6,19 +6,18 @@ import io.github.nexalloy.ExtensionResourceHook
 import io.github.nexalloy.addModuleAssets
 import io.github.nexalloy.injectHostClassLoaderToSelf
 import io.github.nexalloy.injectSelfClassLoaderToHost
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.CheckRecycleBitmapMediaSession
 import io.github.nexalloy.morphe.youtube.ad.general.HideAds
 import io.github.nexalloy.morphe.youtube.ad.video.VideoAds
 import io.github.nexalloy.morphe.youtube.interaction.copyvideourl.CopyVideoUrl
 import io.github.nexalloy.morphe.youtube.interaction.downloads.Downloads
 import io.github.nexalloy.morphe.youtube.interaction.swipecontrols.SwipeControls
-import io.github.nexalloy.morphe.youtube.layout.captions.AutoCaptions
-import io.github.nexalloy.morphe.youtube.layout.shortsnoresume.DisableShortsResumingOnStartup
 import io.github.nexalloy.morphe.youtube.layout.buttons.action.HideVideoActionButtons
-import io.github.nexalloy.morphe.youtube.layout.buttons.navigation.NavigationButtons
+import io.github.nexalloy.morphe.youtube.layout.buttons.navigation.NavigationBar
+import io.github.nexalloy.morphe.youtube.layout.captions.AutoCaptions
 import io.github.nexalloy.morphe.youtube.layout.hide.general.HideLayoutComponents
 import io.github.nexalloy.morphe.youtube.layout.hide.shorts.HideShortsComponents
+import io.github.nexalloy.morphe.youtube.layout.shortsnoresume.DisableShortsResumingOnStartup
 import io.github.nexalloy.morphe.youtube.layout.sponsorblock.SponsorBlock
 import io.github.nexalloy.morphe.youtube.layout.thumbnails.AlternativeThumbnailsPatch
 import io.github.nexalloy.morphe.youtube.layout.thumbnails.BypassImageRegionRestrictionsPatch
@@ -31,6 +30,7 @@ import io.github.nexalloy.morphe.youtube.video.audio.ForceOriginalAudio
 import io.github.nexalloy.morphe.youtube.video.codecs.DisableVideoCodecs
 import io.github.nexalloy.morphe.youtube.video.quality.VideoQuality
 import io.github.nexalloy.morphe.youtube.video.speed.PlaybackSpeed
+import io.github.nexalloy.patch
 import org.luckypray.dexkit.wrap.DexMethod
 
 val ExtensionHook = patch(name = "<ExtensionHook>") {
@@ -58,7 +58,7 @@ val YouTubePatches = arrayOf(
     Downloads,
     HideShortsComponents,
     DisableShortsResumingOnStartup,
-    NavigationButtons,
+    NavigationBar,
     SwipeControls,
     VideoQuality,
     HideLayoutComponents,

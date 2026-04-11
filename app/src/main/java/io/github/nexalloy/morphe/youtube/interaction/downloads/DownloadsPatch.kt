@@ -5,17 +5,17 @@ import app.morphe.extension.youtube.patches.DownloadsPatch
 import app.morphe.extension.youtube.settings.preference.ExternalDownloaderPreference
 import app.morphe.extension.youtube.videoplayer.ExternalDownloadButton
 import io.github.nexalloy.R
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.TextPreference
 import io.github.nexalloy.morphe.youtube.misc.playercontrols.ControlInitializer
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.PlayerControls
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.addBottomControl
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.initializeBottomControl
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.LegacyPlayerControls
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.addTopControl
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.initializeTopControl
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.morphe.youtube.shared.mainActivityOnCreateFingerprint
 import io.github.nexalloy.morphe.youtube.video.information.VideoInformationPatch
+import io.github.nexalloy.patch
 
 val Downloads = patch(
     name = "Downloads",
@@ -23,7 +23,7 @@ val Downloads = patch(
             "using the in-app download button or a video player action button.",
 ) {
     dependsOn(
-        PlayerControls,
+        LegacyPlayerControls,
         VideoInformationPatch,
     )
 
@@ -42,11 +42,16 @@ val Downloads = patch(
         ),
     )
 
-    addBottomControl(R.layout.morphe_external_download_button)
-    initializeBottomControl(
+    addTopControl(
+        R.layout.morphe_external_download_button,
+        R.id.morphe_external_download_button,
+        R.id.morphe_external_download_button
+    )
+
+    initializeTopControl(
         ControlInitializer(
             R.id.morphe_external_download_button,
-            ExternalDownloadButton::initializeButton,
+            ExternalDownloadButton::initializeLegacyButton,
             ExternalDownloadButton::setVisibility,
             ExternalDownloadButton::setVisibilityImmediate,
             ExternalDownloadButton::setVisibilityNegatedImmediate,

@@ -18,7 +18,7 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractiveP
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceCategory
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
 import io.github.nexalloy.morphe.youtube.misc.playercontrols.ControlInitializer
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.PlayerControls
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.LegacyPlayerControls
 import io.github.nexalloy.morphe.youtube.misc.playercontrols.addTopControl
 import io.github.nexalloy.morphe.youtube.misc.playercontrols.initializeTopControl
 import io.github.nexalloy.morphe.youtube.misc.playertype.PlayerTypeHook
@@ -40,7 +40,7 @@ val SponsorBlock = patch(
         VideoInformationPatch,
         VideoId,
         PlayerTypeHook,
-        PlayerControls,
+        LegacyPlayerControls,
     )
 
     PreferenceScreen.SPONSORBLOCK.addPreferences(
@@ -69,7 +69,11 @@ val SponsorBlock = patch(
         )
     )
 
-    addTopControl(R.layout.morphe_sb_button)
+    addTopControl(
+        R.layout.morphe_sb_button,
+        R.id.morphe_sb_voting_button,
+        R.id.morphe_sb_create_segment_button
+    )
 
     // Hook the video time methods.
     videoTimeHooks.add { SegmentPlaybackController.setVideoTime(it) }
@@ -116,7 +120,7 @@ val SponsorBlock = patch(
     initializeTopControl(
         ControlInitializer(
             R.id.morphe_sb_create_segment_button,
-            CreateSegmentButton::initializeButton,
+            CreateSegmentButton::initializeLegacyButton,
             CreateSegmentButton::setVisibility,
             CreateSegmentButton::setVisibilityImmediate,
             CreateSegmentButton::setVisibilityNegatedImmediate
@@ -125,7 +129,7 @@ val SponsorBlock = patch(
     initializeTopControl(
         ControlInitializer(
             R.id.morphe_sb_voting_button,
-            VotingButton::initializeButton,
+            VotingButton::initializeLegacyButton,
             VotingButton::setVisibility,
             VotingButton::setVisibilityImmediate,
             VotingButton::setVisibilityNegatedImmediate

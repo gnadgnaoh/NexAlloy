@@ -7,9 +7,16 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import app.morphe.extension.shared.ResourceUtils
 import app.morphe.extension.shared.Utils
-import app.morphe.extension.youtube.patches.PlayerControlsPatch
+import app.morphe.extension.youtube.patches.LegacyPlayerControlsPatch
 import io.github.nexalloy.PatchExecutor
-import io.github.nexalloy.R
+import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.LiteralFilter
+import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
+import io.github.nexalloy.morphe.youtube.misc.litho.filter.featureFlagCheck
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_28_or_greater
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_30_or_greater
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_31_or_greater
+import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.patch
 import io.github.nexalloy.scopedHook
 import org.luckypray.dexkit.wrap.DexMethod
@@ -25,7 +32,13 @@ class ControlInitializer(
     @JvmField val setVisibilityNegatedImmediate: () -> Unit
 )
 
-private val topControlLayouts = mutableListOf<Int>()
+private data class TopControlLayout(
+    val layout: Int,
+    val startViewId: Int,
+    val endViewId: Int
+)
+
+private val topControlLayouts = mutableListOf<TopControlLayout>()
 private val bottomControlLayouts = mutableListOf<Int>()
 private val topControls = mutableListOf<ControlInitializer>()
 private val bottomControls = mutableListOf<ControlInitializer>()
@@ -39,11 +52,11 @@ fun onFullscreenButtonVisibilityChanged(isVisible: Boolean) {
 //    Logger.printDebug { ("setVisibilityImmediate($isVisible)") }
 }
 
-fun addTopControl(layout: Int) {
-    topControlLayouts.add(layout)
+fun addTopControl(layout: Int, startViewId: Int, endViewId: Int) {
+    topControlLayouts.add(TopControlLayout(layout, startViewId, endViewId))
 }
 
-fun addBottomControl(layout: Int) {
+fun addLegacyBottomControl(layout: Int) {
     bottomControlLayouts.add(layout)
 }
 
@@ -52,7 +65,7 @@ fun initializeTopControl(control: ControlInitializer) {
     injectVisibilityCheckCall()
 }
 
-fun initializeBottomControl(control: ControlInitializer) {
+fun initializeLegacyBottomControl(control: ControlInitializer) {
     bottomControls.add(control)
     injectVisibilityCheckCall()
 }
@@ -64,22 +77,26 @@ private fun injectVisibilityCheckCall() {
 }
 
 private fun onTopContainerInflate(viewStub: ViewStub, root: ViewGroup) {
-    topControlLayouts.forEach { layout ->
-        viewStub.layoutInflater.inflate(layout, root, true)
+    topControlLayouts.forEach { control ->
+        viewStub.layoutInflater.inflate(control.layout, root, true)
     }
 
-    val heading = Utils.getChildViewByResourceName<View>(root, "player_video_heading")
-    (heading.layoutParams as RelativeLayout.LayoutParams).addRule(
-        RelativeLayout.START_OF, R.id.morphe_sb_voting_button
-    )
+    var insertViewId = ResourceUtils.getIdIdentifier("player_video_heading")
+    val anchorViewId = ResourceUtils.getIdIdentifier("music_app_deeplink_button")
 
-    val revancedSbCreateSegmentButton =
-        Utils.getChildViewByResourceName<View?>(root, "morphe_sb_create_segment_button")
+    for (control in topControlLayouts) {
+        val insertView = root.findViewById<View>(insertViewId) ?: continue
+        val endView = root.findViewById<View>(control.endViewId) ?: continue
 
-    if (revancedSbCreateSegmentButton != null) {
-        (revancedSbCreateSegmentButton.layoutParams as RelativeLayout.LayoutParams).addRule(
-            RelativeLayout.START_OF, ResourceUtils.getIdIdentifier("music_app_deeplink_button")
+        (insertView.layoutParams as RelativeLayout.LayoutParams).addRule(
+            RelativeLayout.START_OF, control.startViewId
         )
+
+        (endView.layoutParams as RelativeLayout.LayoutParams).addRule(
+            RelativeLayout.START_OF, anchorViewId
+        )
+
+        insertViewId = control.endViewId
     }
 
     topControls.forEach { control ->
@@ -88,6 +105,10 @@ private fun onTopContainerInflate(viewStub: ViewStub, root: ViewGroup) {
 }
 
 private fun onBottomContainerInflate(viewStub: ViewStub, root: ViewGroup) {
+    if (LegacyPlayerControlsPatch.usePlayerBottomControlsExploderLayout(/*ignored*/ true)) {
+        return
+    }
+
     bottomControlLayouts.forEach { layout ->
         viewStub.layoutInflater.inflate(layout, root, true)
     }
@@ -96,9 +117,15 @@ private fun onBottomContainerInflate(viewStub: ViewStub, root: ViewGroup) {
     }
 }
 
-val PlayerControls = patch(
+val LegacyPlayerControls = patch(
     description = "Manages the code for the player controls of the YouTube player.",
 ) {
+    if (is_20_31_or_greater) {
+        PreferenceScreen.PLAYER.addPreferences(
+            SwitchPreference("morphe_restore_old_player_buttons")
+        )
+    }
+
     DexMethod("Landroid/view/ViewStub;->inflate()Landroid/view/View;").hookMethod {
         after {
             val viewStub = it.thisObject as ViewStub
@@ -135,7 +162,7 @@ val PlayerControls = patch(
             var rightButton = fullscreenButton
 
             for (bottomControl in bottomControls) {
-                val leftButton = controlsView.findViewById<View>(bottomControl.id)
+                val leftButton = controlsView.findViewById<View>(bottomControl.id) ?: continue
                 if (leftButton.visibility == View.GONE) continue
                 // put this button to the left
                 leftButton.x = rightButton.x - leftButton.width
@@ -159,13 +186,13 @@ private fun PatchExecutor.initInjectVisibilityCheckCall() {
         }
     }
 
-    // Hook the fullscreen close button.  Used to fix visibility
+    // Hook the fullscreen close button. Used to fix visibility
     // when seeking and other situations.
     ::overlayViewInflateFingerprint.hookMethod(scopedHook(DexMethod("Landroid/view/View;->findViewById(I)Landroid/view/View;").toMember()) {
         val fullscreenButtonId = fullscreen_button_id
         after {
             if (it.args[0] == fullscreenButtonId) {
-                PlayerControlsPatch.setFullscreenCloseButton(it.result as ImageView)
+                LegacyPlayerControlsPatch.setFullscreenCloseButton(it.result as ImageView)
             }
         }
     })
@@ -178,4 +205,35 @@ private fun PatchExecutor.initInjectVisibilityCheckCall() {
 //            Logger.printDebug { "setVisibilityNegatedImmediate()" }
         }
     })
+
+    fun overrideExploderLayout(fingerprint: Fingerprint) {
+        val featureId = (fingerprint.filters!![0] as LiteralFilter).literal()
+        ::featureFlagCheck.hookMethod {
+            after {
+                if (it.args[0] == featureId)
+                    it.result =
+                        LegacyPlayerControlsPatch.usePlayerBottomControlsExploderLayout(it.result as Boolean)
+            }
+        }
+    }
+
+    // A/B test for a slightly different bottom overlay controls,
+    // that uses layout file youtube_video_exploder_controls_bottom_ui_container.xml
+    // The change to support this is simple and only requires adding buttons to both layout files,
+    // but for now force this different layout off since it's still an experimental test.
+
+    overrideExploderLayout(PlayerBottomControlsExploderFeatureFlagFingerprint)
+
+    // Turn off a/b tests of ugly player buttons that don't match the style of custom player buttons.
+    overrideExploderLayout(PlayerControlsFullscreenLargeButtonsFeatureFlagFingerprint)
+
+    if (is_20_28_or_greater) {
+        overrideExploderLayout(PlayerControlsLargeOverlayButtonsFeatureFlagFingerprint)
+    }
+
+    if (is_20_30_or_greater) {
+        overrideExploderLayout(PlayerControlsButtonStrokeFeatureFlagFingerprint)
+    }
+
+    // TODO Clear bottom gradient.
 }

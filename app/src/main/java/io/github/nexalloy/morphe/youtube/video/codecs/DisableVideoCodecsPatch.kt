@@ -2,10 +2,10 @@ package io.github.nexalloy.morphe.youtube.video.codecs
 
 import app.morphe.extension.youtube.patches.DisableVideoCodecsPatch
 import app.morphe.extension.youtube.settings.Settings
-import io.github.nexalloy.patch
 import io.github.nexalloy.invokeOriginalMethod
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import io.github.nexalloy.patch
 import org.luckypray.dexkit.wrap.DexMethod
 
 val DisableVideoCodecs = patch(
@@ -14,7 +14,10 @@ val DisableVideoCodecs = patch(
 ) {
     PreferenceScreen.VIDEO.addPreferences(
         SwitchPreference("morphe_disable_hdr_video"),
-        SwitchPreference("morphe_force_avc_codec")
+        SwitchPreference(
+            key ="morphe_force_avc_codec",
+            tag = app.morphe.extension.youtube.settings.preference.ForceAVCSwitchPreference::class.java
+        )
     )
 
     DexMethod("Landroid/view/Display\$HdrCapabilities;->getSupportedHdrTypes()[I").hookMethod {

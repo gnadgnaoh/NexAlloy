@@ -15,9 +15,6 @@ import app.morphe.extension.youtube.patches.components.HorizontalShelvesFilter
 import app.morphe.extension.youtube.patches.components.KeywordContentFilter
 import app.morphe.extension.youtube.patches.components.LayoutComponentsFilter
 import app.morphe.extension.youtube.settings.preference.HTMLPreference
-import io.github.nexalloy.new
-import io.github.nexalloy.patch
-import io.github.nexalloy.scopedHook
 import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
 import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractivePreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
@@ -33,6 +30,9 @@ import io.github.nexalloy.morphe.youtube.misc.litho.lazily.hookTreeNodeResult
 import io.github.nexalloy.morphe.youtube.misc.navigation.NavigationBarHook
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import io.github.nexalloy.new
+import io.github.nexalloy.patch
+import io.github.nexalloy.scopedHook
 import org.luckypray.dexkit.wrap.DexMethod
 
 val hideHorizontalShelvesPatch = patch {
@@ -210,6 +210,7 @@ val HideLayoutComponents = patch(
         SwitchPreference("morphe_hide_movies_section"),
         SwitchPreference("morphe_hide_notify_me_button"),
         SwitchPreference("morphe_hide_playables"),
+//        SwitchPreference("morphe_hide_search_term_thumbnails"),
 //        SwitchPreference("morphe_hide_show_more_button"),
         SwitchPreference("morphe_hide_subscribed_channels_bar"),
         SwitchPreference("morphe_hide_surveys"),
@@ -340,6 +341,8 @@ val HideLayoutComponents = patch(
     // endregion
 
     // TODO hide channel tab — ChannelTabBuilder/ChannelTabRenderer METHOD_MID (iterator manipulation)
+
+    // TODO hide search term thumbnails
 
 
     // id hook

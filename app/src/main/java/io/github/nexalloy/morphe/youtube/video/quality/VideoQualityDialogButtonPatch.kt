@@ -2,31 +2,35 @@ package io.github.nexalloy.morphe.youtube.video.quality
 
 import app.morphe.extension.youtube.videoplayer.VideoQualityDialogButton
 import io.github.nexalloy.R
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
+import io.github.nexalloy.morphe.youtube.layout.player.buttons.addPlayerBottomButton
+import io.github.nexalloy.morphe.youtube.layout.player.buttons.playerOverlayButtonsHook
 import io.github.nexalloy.morphe.youtube.misc.playercontrols.ControlInitializer
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.PlayerControls
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.addBottomControl
-import io.github.nexalloy.morphe.youtube.misc.playercontrols.initializeBottomControl
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.LegacyPlayerControls
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.addLegacyBottomControl
+import io.github.nexalloy.morphe.youtube.misc.playercontrols.initializeLegacyBottomControl
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import io.github.nexalloy.patch
 
 val VideoQualityDialogButtonPatch = patch(
     description = "Adds the option to display video quality dialog button in the video player.",
 ) {
     dependsOn(
         RememberVideoQuality,
-        PlayerControls,
+        LegacyPlayerControls,
+        playerOverlayButtonsHook
     )
 
     PreferenceScreen.PLAYER.addPreferences(
         SwitchPreference("morphe_video_quality_dialog_button"),
     )
+    addPlayerBottomButton(VideoQualityDialogButton::initializeButton)
 
-    addBottomControl(R.layout.morphe_video_quality_dialog_button_container)
-    initializeBottomControl(
+    addLegacyBottomControl(R.layout.morphe_video_quality_dialog_button_container)
+    initializeLegacyBottomControl(
         ControlInitializer(
             R.id.morphe_video_quality_dialog_button_container,
-            VideoQualityDialogButton::initializeButton,
+            VideoQualityDialogButton::initializeLegacyButton,
             VideoQualityDialogButton::setVisibility,
             VideoQualityDialogButton::setVisibilityImmediate,
             VideoQualityDialogButton::setVisibilityNegatedImmediate

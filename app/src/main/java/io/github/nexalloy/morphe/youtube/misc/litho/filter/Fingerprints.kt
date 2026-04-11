@@ -4,12 +4,10 @@ import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
 import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.OpcodesFilter
-import io.github.nexalloy.RequireAppVersion
 import io.github.nexalloy.morphe.findClassDirect
 import io.github.nexalloy.morphe.findFieldDirect
 import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.morphe.fingerprint
-import io.github.nexalloy.morphe.literal
 import io.github.nexalloy.morphe.youtube.shared.conversionContextFingerprintToString
 import org.luckypray.dexkit.result.FieldUsingType
 
@@ -52,16 +50,6 @@ val lithoThreadExecutorFingerprint = fingerprint {
     }
     literal { 1L }
 }
-
-@RequireAppVersion("19.25.00", "20.04.99")
-object LithoComponentNameUpbFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
-    filters = listOf(
-        literal(45631264L)
-    )
-)
 
 val lithoConverterBufferUpbFeatureFlagFingerprint = fingerprint {
 //    accessFlags(AccessFlags.PUBLIC, AccessFlags.STATIC)

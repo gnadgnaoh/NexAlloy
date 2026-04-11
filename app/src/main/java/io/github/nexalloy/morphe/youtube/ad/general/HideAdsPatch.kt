@@ -6,16 +6,15 @@ import app.morphe.extension.shared.ResourceUtils
 import app.morphe.extension.youtube.patches.components.AdsFilter
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.youtube.misc.engagement.addEngagementPanelIdHook
 import io.github.nexalloy.morphe.youtube.misc.engagement.engagementPanelHookPatch
 import io.github.nexalloy.morphe.youtube.misc.litho.filter.LithoFilter
 import io.github.nexalloy.morphe.youtube.misc.litho.filter.addLithoFilter
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
-import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_14_or_greater
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.morphe.youtube.misc.verticalscroll.FixVerticalScroll
+import io.github.nexalloy.patch
 
 val HideAds = patch(
     name = "Hide ads",
@@ -68,11 +67,9 @@ val HideAds = patch(
 
     // Hide player overlay view. This can be hidden with a regular litho filter
     // but an empty space remains.
-    if (is_20_14_or_greater) {
-        PlayerOverlayTimelyShelfFingerprint.hookMethod {
-            before {
-                if (AdsFilter.hideAds()) it.result = null
-            }
+    PlayerOverlayTimelyShelfFingerprint.hookMethod {
+        before {
+            if (AdsFilter.hideAds()) it.result = null
         }
     }
 

@@ -5,56 +5,6 @@ package io.github.nexalloy.morphe.youtube.misc.playservice
 import io.github.nexalloy.patch
 
 // All bug fix releases always seem to use the same play store version as the minor version.
-var is_19_17_or_greater = false
-    private set
-var is_19_18_or_greater = false
-    private set
-var is_19_23_or_greater = false
-    private set
-var is_19_25_or_greater = false
-    private set
-var is_19_26_or_greater = false
-    private set
-var is_19_29_or_greater = false
-    private set
-var is_19_32_or_greater = false
-    private set
-var is_19_33_or_greater = false
-    private set
-var is_19_34_or_greater = false
-    private set
-var is_19_35_or_greater = false
-    private set
-var is_19_36_or_greater = false
-    private set
-var is_19_41_or_greater = false
-    private set
-var is_19_43_or_greater = false
-    private set
-var is_19_46_or_greater = false
-    private set
-var is_19_47_or_greater = false
-    private set
-var is_19_49_or_greater = false
-    private set
-var is_20_02_or_greater = false
-    private set
-var is_20_03_or_greater = false
-    private set
-var is_20_05_or_greater = false
-    private set
-var is_20_06_or_greater = false
-    private set
-var is_20_07_or_greater = false
-    private set
-var is_20_14_or_greater = false
-    private set
-var is_20_15_or_greater = false
-    private set
-var is_20_19_or_greater = false
-    private set
-var is_20_20_or_greater = false
-    private set
 var is_20_21_or_greater = false
     private set
 var is_20_22_or_greater = false
@@ -107,6 +57,8 @@ var is_21_11_or_greater = false
     private set
 var is_21_12_or_greater = false
     private set
+var is_21_14_or_greater = false
+    private set
 
 val VersionCheck = patch {
     val versionName = appContext.packageManager
@@ -115,31 +67,6 @@ val VersionCheck = patch {
     fun isEqualsOrGreaterThan(version: String) = versionName >= version
 
     // All bug fix releases always seem to use the same play store version as the minor version.
-    is_19_17_or_greater = isEqualsOrGreaterThan("19.17.00")
-    is_19_18_or_greater = isEqualsOrGreaterThan("19.18.00")
-    is_19_23_or_greater = isEqualsOrGreaterThan("19.23.00")
-    is_19_25_or_greater = isEqualsOrGreaterThan("19.25.00")
-    is_19_26_or_greater = isEqualsOrGreaterThan("19.26.00")
-    is_19_29_or_greater = isEqualsOrGreaterThan("19.29.00")
-    is_19_32_or_greater = isEqualsOrGreaterThan("19.32.00")
-    is_19_33_or_greater = isEqualsOrGreaterThan("19.33.00")
-    is_19_34_or_greater = isEqualsOrGreaterThan("19.34.00")
-    is_19_35_or_greater = isEqualsOrGreaterThan("19.35.00")
-    is_19_36_or_greater = isEqualsOrGreaterThan("19.36.00")
-    is_19_41_or_greater = isEqualsOrGreaterThan("19.41.00")
-    is_19_43_or_greater = isEqualsOrGreaterThan("19.43.00")
-    is_19_46_or_greater = isEqualsOrGreaterThan("19.46.00")
-    is_19_47_or_greater = isEqualsOrGreaterThan("19.47.00")
-    is_19_49_or_greater = isEqualsOrGreaterThan("19.49.00")
-    is_20_02_or_greater = isEqualsOrGreaterThan("20.02.00")
-    is_20_03_or_greater = isEqualsOrGreaterThan("20.03.00")
-    is_20_05_or_greater = isEqualsOrGreaterThan("20.05.00")
-    is_20_06_or_greater = isEqualsOrGreaterThan("20.06.00")
-    is_20_07_or_greater = isEqualsOrGreaterThan("20.07.00")
-    is_20_14_or_greater = isEqualsOrGreaterThan("20.14.00")
-    is_20_15_or_greater = isEqualsOrGreaterThan("20.15.00")
-    is_20_19_or_greater = isEqualsOrGreaterThan("20.19.00")
-    is_20_20_or_greater = isEqualsOrGreaterThan("20.20.00")
     is_20_21_or_greater = isEqualsOrGreaterThan("20.21.00")
     is_20_22_or_greater = isEqualsOrGreaterThan("20.22.00")
     is_20_26_or_greater = isEqualsOrGreaterThan("20.26.00")
@@ -166,4 +93,5 @@ val VersionCheck = patch {
     is_21_10_or_greater = isEqualsOrGreaterThan("21.10.000")
     is_21_11_or_greater = isEqualsOrGreaterThan("21.11.000")
     is_21_12_or_greater = isEqualsOrGreaterThan("21.12.000")
+    is_21_14_or_greater = isEqualsOrGreaterThan("21.14.000")
 }

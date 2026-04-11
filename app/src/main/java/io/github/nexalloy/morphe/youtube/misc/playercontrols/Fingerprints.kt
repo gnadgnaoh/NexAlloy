@@ -1,10 +1,15 @@
 package io.github.nexalloy.morphe.youtube.misc.playercontrols
 
+import io.github.nexalloy.RequireAppVersion
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.InstructionLocation.MatchAfterImmediately
+import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.ResourceType
 import io.github.nexalloy.morphe.fingerprint
+import io.github.nexalloy.morphe.literal
 import io.github.nexalloy.morphe.methodCall
+import io.github.nexalloy.morphe.opcode
 import io.github.nexalloy.morphe.resourceLiteral
 import io.github.nexalloy.morphe.resourceMappings
 
@@ -39,6 +44,16 @@ object PlayerTopControlsInflateFingerprint : Fingerprint(
     )
 )
 
+internal object PlayerBottomControlsInflateFingerprint : Fingerprint(
+    returnType = "Ljava/lang/Object;",
+    parameters = listOf(),
+    filters = listOf(
+        resourceLiteral(ResourceType.ID, "bottom_ui_container_stub"),
+        methodCall(definingClass = "Landroid/view/ViewStub;", name = "inflate"),
+        opcode(Opcode.MOVE_RESULT_OBJECT, MatchAfterImmediately())
+    )
+)
+
 val overlayViewInflateFingerprint = fingerprint {
     accessFlags(AccessFlags.PUBLIC, AccessFlags.FINAL)
     returns("V")
@@ -54,4 +69,42 @@ object ControlsOverlayVisibilityFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PRIVATE, AccessFlags.FINAL),
     returnType = "V",
     parameters = listOf("Z", "Z"),
+)
+
+internal object PlayerBottomControlsExploderFeatureFlagFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Z",
+    parameters = listOf(),
+    filters = listOf(
+        literal(45643739L)
+    )
+)
+
+@RequireAppVersion("20.28.00")
+internal object PlayerControlsLargeOverlayButtonsFeatureFlagFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Z",
+    parameters = listOf(),
+    filters = listOf(
+        literal(45709810L)
+    )
+)
+
+internal object PlayerControlsFullscreenLargeButtonsFeatureFlagFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Z",
+    parameters = listOf(),
+    filters = listOf(
+        literal(45686474L)
+    )
+)
+
+@RequireAppVersion("20.30.00")
+internal object PlayerControlsButtonStrokeFeatureFlagFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Z",
+    parameters = listOf(),
+    filters = listOf(
+        literal(45713296)
+    )
 )

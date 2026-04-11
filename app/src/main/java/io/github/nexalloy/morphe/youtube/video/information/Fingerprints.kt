@@ -1,9 +1,9 @@
 package io.github.nexalloy.morphe.youtube.video.information
 
+import io.github.nexalloy.SkipTest
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
 import io.github.nexalloy.morphe.Opcode
-import io.github.nexalloy.SkipTest
 import io.github.nexalloy.morphe.findClassDirect
 import io.github.nexalloy.morphe.findFieldDirect
 import io.github.nexalloy.morphe.findMethodDirect
@@ -224,16 +224,6 @@ val playbackSpeedClassFingerprint = fingerprint {
     )
     methodMatcher { addEqString("PLAYBACK_RATE_MENU_BOTTOM_SHEET_FRAGMENT") }
 }
-
-@SkipTest
-private object VideoQualityLegacyFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.CONSTRUCTOR),
-    parameters = listOf(
-        "I", // Resolution.
-        "Ljava/lang/String;", // Human readable resolution: "480p", "1080p Premium", etc
-        "Z", "L"
-    )
-)
 
 val videoQualitySetterFingerprint = fingerprint {
     accessFlags(AccessFlags.PUBLIC, AccessFlags.FINAL)

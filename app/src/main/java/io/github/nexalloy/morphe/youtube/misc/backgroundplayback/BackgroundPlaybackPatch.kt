@@ -2,10 +2,10 @@ package io.github.nexalloy.morphe.youtube.misc.backgroundplayback
 
 import app.morphe.extension.youtube.patches.BackgroundPlaybackPatch
 import de.robv.android.xposed.XC_MethodReplacement.returnConstant
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.youtube.misc.litho.filter.featureFlagCheck
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
+import io.github.nexalloy.patch
 
 val BackgroundPlayback = patch(
     name = "Remove background playback restrictions",
@@ -41,7 +41,6 @@ val BackgroundPlayback = patch(
     KidsBackgroundPlaybackPolicyControllerFingerprint.hookMethod(returnConstant(Unit))
 
     // Fix PiP buttons not working after locking/unlocking device screen.
-    // Starts with 19.34.xx
     ::featureFlagCheck.hookMethod {
         before { if (it.args[0] == PIP_INPUT_CONSUMER_FEATURE_FLAG) it.result = false }
     }

@@ -3,11 +3,8 @@ package io.github.nexalloy.morphe.youtube.misc.litho.filter
 import app.morphe.extension.youtube.patches.components.Filter
 import app.morphe.extension.youtube.patches.components.LithoFilterPatch
 import app.morphe.extension.youtube.shared.ConversionContext
-import de.robv.android.xposed.XC_MethodReplacement.returnConstant
-import io.github.nexalloy.patch
 import io.github.nexalloy.new
-import io.github.nexalloy.morphe.youtube.misc.playservice.is_19_25_or_greater
-import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_05_or_greater
+import io.github.nexalloy.patch
 import java.nio.ByteBuffer
 
 lateinit var addLithoFilter: (Filter) -> Unit
@@ -64,15 +61,6 @@ val LithoFilter = patch(
     // endregion
 
     // region A/B test of new Litho native code.
-
-    // Turn off native code that handles litho component names.  If this feature is on then nearly
-    // all litho components have a null name and identifier/path filtering is completely broken.
-    //
-    // Flag was removed in 20.05. It appears a new flag might be used instead (45660109L),
-    // but if the flag is forced on then litho filtering still works correctly.
-    if (is_19_25_or_greater && !is_20_05_or_greater) {
-        LithoComponentNameUpbFeatureFlagFingerprint.hookMethod(returnConstant(false))
-    }
 
     // Turn off a feature flag that enables native code of protobuf parsing (Upb protobuf).
     // If this is enabled, then the litho protobuffer hook will always show an empty buffer

@@ -1,9 +1,6 @@
 package io.github.nexalloy.morphe.shared.misc.debugging
 
 import app.morphe.extension.shared.patches.EnableDebuggingPatch
-import app.morphe.extension.shared.settings.preference.ClearLogBufferPreference
-import app.morphe.extension.shared.settings.preference.ExportLogToClipboardPreference
-import app.morphe.extension.shared.settings.preference.FeatureFlagsManagerPreference
 import io.github.nexalloy.PatchExecutor
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.shared.misc.settings.preference.BasePreference
@@ -28,18 +25,13 @@ fun PatchExecutor.EnableDebugging(
             SwitchPreference("morphe_debug_stacktrace"),
             SwitchPreference("morphe_debug_toast_on_error"),
             NonInteractivePreference(
-                "morphe_debug_export_logs_to_clipboard",
-                tag = ExportLogToClipboardPreference::class.java,
-                selectable = true
-            ),
-            NonInteractivePreference(
-                "morphe_debug_logs_clear_buffer",
-                tag = ClearLogBufferPreference::class.java,
+                "morphe_debug_export_logs",
+                tag = app.morphe.extension.shared.settings.preference.ExportLogToClipboardPreference::class.java,
                 selectable = true
             ),
             NonInteractivePreference(
                 "morphe_debug_feature_flags_manager",
-                tag = FeatureFlagsManagerPreference::class.java,
+                tag = app.morphe.extension.shared.settings.preference.FeatureFlagsManagerPreference::class.java,
                 selectable = true
             )
         )

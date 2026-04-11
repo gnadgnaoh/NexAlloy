@@ -104,28 +104,25 @@ val CustomPlaybackSpeed = patch(
     addLithoFilter(PlaybackSpeedMenuFilter())
 
     // region Custom tap and hold 2x speed.
-
-    runCatching {
-        val tapAndHoldPath = ThreadLocal<Boolean>()
-        ::onSpeedTapAndHoldFingerprint.hookMethod {
-            before { tapAndHoldPath.remove() }
-            after {
-                if (tapAndHoldPath.get() == true) {
-                    doOverridePlaybackSpeed(CustomPlaybackSpeedPatch.getTapAndHoldSpeed())
-                }
+    val tapAndHoldPath = ThreadLocal<Boolean>()
+    ::onSpeedTapAndHoldFingerprint.hookMethod {
+        before { tapAndHoldPath.remove() }
+        after {
+            if (tapAndHoldPath.get() == true) {
+                doOverridePlaybackSpeed(CustomPlaybackSpeedPatch.getTapAndHoldSpeed())
             }
         }
-        ::onSpeedTapAndHoldFingerprint.hookMethod(
-            scopedHook(::getPlaybackSpeedMethodReference.member) {
-                before {
-                    tapAndHoldPath.set(true)
-                }
-            })
-
-        settingsMenuVideoSpeedGroup.add(
-            TextPreference("morphe_speed_tap_and_hold", inputType = InputType.NUMBER_DECIMAL),
-        )
     }
+    ::onSpeedTapAndHoldFingerprint.hookMethod(
+        scopedHook(::getPlaybackSpeedMethodReference.member) {
+            before {
+                tapAndHoldPath.set(true)
+            }
+        })
+
+    settingsMenuVideoSpeedGroup.add(
+        TextPreference("morphe_speed_tap_and_hold", inputType = InputType.NUMBER_DECIMAL),
+    )
 
     // endregion
 }
