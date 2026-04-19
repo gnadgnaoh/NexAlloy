@@ -97,6 +97,18 @@ private val FEED_AD_SIGNAL_TOKENS = listOf(
     "floatingcta"
 )
 
+/**
+ * Method names thực sự tồn tại trong dex Facebook với ý nghĩa kỹ thuật.
+ * Phân tích từ dex thực tế — chỉ những tên này mới không bị obfuscate.
+ * (Tất cả field names đều bị obfuscate thành A00, A01... nên không scan fields)
+ */
+private val SAFE_STRING_METHOD_NAMES = setOf(
+    "getTypeName",      // GraphQLFeedUnitEdge, GraphQLStory, GraphQLFBMultiAdsFeedUnit...
+    "getCacheId",       // GraphQLStory, GraphQLQuickPromotionNativeTemplateFeedUnit...
+    "getDebugInfo",     // GraphQLStory, GraphQLFBMultiAdsFeedUnit...
+    "getAnalyticsName", // FbShorts fragment classes
+)
+
 private val gameAdInstanceIds = ConcurrentHashMap<String, String>()
 
 // ─── AdStoryInspector ─────────────────────────────────────────────────────────
@@ -210,7 +222,6 @@ class FeedItemInspector(itemContractTypes: Collection<Class<*>>) {
 
     // String-scanning caches — used by [containsKnownAdSignals]
     private val stringAccessorCache = ConcurrentHashMap<Class<*>, List<Method>>()
-    private val stringFieldCache = ConcurrentHashMap<Class<*>, List<Field>>()
 
     fun isSponsoredFeedItem(value: Any?): Boolean {
         if (value == null) return false
@@ -234,6 +245,7 @@ class FeedItemInspector(itemContractTypes: Collection<Class<*>>) {
         if (isLikelyAdTypeName(typeName) || isAdSignalText(unitClassName)) return true
 
         // 5. String-signal scan on all layers (catches banner/deferred-card/floatingCTA)
+        // Chỉ scan metadata/technical fields — bỏ qua text content người dùng
         if (containsKnownAdSignals(value)) return true
         if (containsKnownAdSignals(invokeNoThrow(itemModelAccessor, value))) return true
         if (containsKnownAdSignals(edge)) return true
@@ -347,25 +359,8 @@ class FeedItemInspector(itemContractTypes: Collection<Class<*>>) {
         if (type.isEnum) return isAdSignalText(value.toString())
         if (type.isPrimitive || value is Number || value is Boolean) return false
         for (method in stringAccessorsFor(type)) {
-            if (!isTechnicalFieldName(method.name)) continue
+            if (method.name !in SAFE_STRING_METHOD_NAMES) continue
             if (isAdSignalText(invokeNoThrow(method, value) as? String)) return true
-        }
-        for (field in stringFieldsFor(type)) {
-            if (!isTechnicalFieldName(field.name)) continue
-            if (isAdSignalText(runCatching { field.get(value) as? String }.getOrNull())) return true
-        }
-        return false
-    }
-
-    private fun isTechnicalFieldName(name: String): Boolean {
-        val lower = name.lowercase()
-        val allowed = listOf("type", "kind", "category", "format", "unit", "key",
-            "tag", "label", "mode", "state", "class", "id", "name", "slot", "placement")
-        if (allowed.any { lower.contains(it) }) {
-            val blocked = listOf("text", "body", "message", "content", "caption",
-                "description", "subtitle", "title", "story", "header", "summary")
-            if (blocked.any { lower.contains(it) }) return false
-            return true
         }
         return false
     }
@@ -384,21 +379,6 @@ class FeedItemInspector(itemContractTypes: Collection<Class<*>>) {
                 .toList()
         }
 
-    private fun stringFieldsFor(type: Class<*>): List<Field> =
-        stringFieldCache.getOrPut(type) {
-            val fields = ArrayList<Field>()
-            var cur: Class<*>? = type
-            while (cur != null && cur != Any::class.java && fields.size < 12) {
-                cur.declaredFields.forEach { f ->
-                    if (!Modifier.isStatic(f.modifiers) && f.type == String::class.java && fields.size < 12) {
-                        f.isAccessible = true
-                        fields.add(f)
-                    }
-                }
-                cur = cur.superclass
-            }
-            fields
-        }
 
     /**
      * Kiểm tra chuỗi có chứa bất kỳ token nào trong [FEED_AD_SIGNAL_TOKENS].
