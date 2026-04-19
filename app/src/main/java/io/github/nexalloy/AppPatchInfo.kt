@@ -8,7 +8,7 @@ import io.github.nexalloy.revanced.photomath.PhotomathPatches
 import io.github.nexalloy.revanced.instagram.InstagramPatches
 import io.github.nexalloy.revanced.threads.ThreadsPatches
 import io.github.nexalloy.revanced.facebook.FacebookPatches
-// import io.github.nexalloy.revanced.strava.StravaPatches
+import io.github.nexalloy.revanced.strava.StravaPatches
 
 
 
@@ -22,7 +22,7 @@ val appPatchConfigurations = listOf(
     AppPatchInfo("Instagram", "com.instagram.android", InstagramPatches),
     AppPatchInfo("Threads", "com.instagram.barcelona", ThreadsPatches),
     AppPatchInfo("Facebook", "com.facebook.katana", FacebookPatches),
-    // AppPatchInfo("Strava", "com.strava", StravaPatches),
+    AppPatchInfo("Strava", "com.strava", StravaPatches),
     AppPatchInfo("Photomath", "com.microblink.photomath", PhotomathPatches),
 )
 
