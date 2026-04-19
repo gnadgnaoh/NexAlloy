@@ -4,7 +4,9 @@ import io.github.nexalloy.morphe.music.YTMusicPatches
 import io.github.nexalloy.morphe.reddit.RedditPatches
 import io.github.nexalloy.morphe.youtube.YouTubePatches
 import io.github.nexalloy.revanced.googlephotos.GooglePhotosPatches
-import io.github.nexalloy.revanced.meta.MetaPatches
+import io.github.nexalloy.revanced.instagram.InstagramPatches
+import io.github.nexalloy.revanced.threads.ThreadsPatches
+import io.github.nexalloy.revanced.facebook.FacebookPatches
 import io.github.nexalloy.revanced.photomath.PhotomathPatches
 import io.github.nexalloy.revanced.strava.StravaPatches
 
@@ -19,6 +21,7 @@ val appPatchConfigurations = listOf(
     AppPatchInfo("Instagram", "com.instagram.android", MetaPatches),
     AppPatchInfo("Threads", "com.instagram.barcelona", MetaPatches),
     AppPatchInfo("Strava", "com.strava", StravaPatches),
+    AppPatchInfo("Facebook", "com.facebook.katana", FacebookPatches),
 )
 
 val patchesByPackage = appPatchConfigurations.associate { it.packageName to it.patches }
