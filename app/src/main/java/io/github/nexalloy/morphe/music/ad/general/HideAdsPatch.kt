@@ -1,21 +1,27 @@
-package io.github.nexalloy.morphe.music.layout.premium
+package io.github.nexalloy.morphe.music.ad.general
 
 import android.view.View
-import app.morphe.extension.music.patches.HideGetPremiumPatch
+import app.morphe.extension.music.patches.HideAdsPatch
 import app.morphe.extension.shared.Logger
 import app.morphe.extension.shared.ResourceUtils
-import io.github.nexalloy.patch
 import io.github.nexalloy.morphe.music.misc.settings.PreferenceScreen
+import io.github.nexalloy.morphe.shared.ad.HideFullscreenAds
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
+import io.github.nexalloy.patch
 
-val HideGetPremium = patch(
-    name = "Hide 'Get Music Premium'",
-    description = "Adds an option to hide the \"Get Music Premium\" label in the settings and account menu.",
+val HideAds = patch(
+    name = "Hide ads",
+    description = "Adds options to hide ads such as the fullscreen Premium popup and \"Get Music Premium\" label.",
 ) {
+    dependsOn(
+        HideFullscreenAds(PreferenceScreen.ADS),
+    )
+
     PreferenceScreen.ADS.addPreferences(
         SwitchPreference("morphe_music_hide_get_premium_label"),
     )
 
+    // Hide 'Get Music Premium' label
     ::hideGetPremiumFingerprint.hookMethod {
         val id = ResourceUtils.getIdIdentifier("unlimited_panel")
         after { param ->
@@ -33,7 +39,7 @@ val HideGetPremium = patch(
 
     ::membershipSettingsFingerprint.hookMethod {
         before {
-            if (HideGetPremiumPatch.hideGetPremiumLabel()) it.result = null
+            if (HideAdsPatch.hideGetPremiumLabel()) it.result = null
         }
     }
 }

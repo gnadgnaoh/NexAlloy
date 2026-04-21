@@ -6,6 +6,7 @@ import app.morphe.extension.shared.ResourceUtils
 import app.morphe.extension.youtube.patches.components.AdsFilter
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
+import io.github.nexalloy.morphe.shared.ad.HideFullscreenAds
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.youtube.misc.engagement.addEngagementPanelIdHook
 import io.github.nexalloy.morphe.youtube.misc.engagement.engagementPanelHookPatch
@@ -24,12 +25,12 @@ val HideAds = patch(
         FixVerticalScroll,
         LithoFilter,
         VersionCheck,
-        engagementPanelHookPatch
+        engagementPanelHookPatch,
+        HideFullscreenAds(PreferenceScreen.ADS)
     )
 
     PreferenceScreen.ADS.addPreferences(
 //        SwitchPreference("morphe_hide_end_screen_store_banner"),
-        SwitchPreference("morphe_hide_fullscreen_ads"),
         SwitchPreference("morphe_hide_general_ads"),
         SwitchPreference("morphe_hide_merchandise_banners"),
         SwitchPreference("morphe_hide_paid_promotion_label"),
@@ -43,17 +44,9 @@ val HideAds = patch(
     addLithoFilter(AdsFilter())
     addEngagementPanelIdHook(AdsFilter::hidePlayerPopupAds)
 
-    // TODO: Hide end screen store banner
+    // TODO: Hide YouTube Premium promotions
 
-    // Hide fullscreen ad
-    LithoDialogBuilderFingerprint.hookMethod {
-        var dialogField = ::LithoDialogField.field
-        after {
-            val buffer = it.args[0] as ByteArray?
-            val dialog = dialogField.get(it.thisObject)
-            AdsFilter.closeFullscreenAd(dialog, buffer)
-        }
-    }
+    // TODO: Hide end screen store banner
 
     // Hide get premium
     GetPremiumViewFingerprint.hookMethod {

@@ -16,6 +16,7 @@ import app.morphe.extension.youtube.patches.components.KeywordContentFilter
 import app.morphe.extension.youtube.patches.components.LayoutComponentsFilter
 import app.morphe.extension.youtube.settings.preference.HTMLPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
+import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractivePreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference.Sorting
@@ -29,6 +30,7 @@ import io.github.nexalloy.morphe.youtube.misc.litho.lazily.LazilyConvertedElemen
 import io.github.nexalloy.morphe.youtube.misc.litho.lazily.hookTreeNodeResult
 import io.github.nexalloy.morphe.youtube.misc.navigation.NavigationBarHook
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_26_or_greater
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.new
 import io.github.nexalloy.patch
@@ -78,9 +80,9 @@ val HideLayoutComponents = patch(
                 SwitchPreference("morphe_hide_info_cards_section"),
                 SwitchPreference("morphe_hide_key_concepts_section"),
                 SwitchPreference("morphe_hide_music_section"),
+                SwitchPreference("morphe_hide_quizzes_section"),
                 SwitchPreference("morphe_hide_subscribe_button"),
                 SwitchPreference("morphe_hide_transcript_section"),
-                SwitchPreference("morphe_hide_quizzes_section"),
             ),
         ),
         PreferenceScreenPreference(
@@ -176,16 +178,24 @@ val HideLayoutComponents = patch(
                 SwitchPreference("morphe_hide_join_button"),
                 SwitchPreference("morphe_hide_links_preview"),
                 SwitchPreference("morphe_hide_members_shelf"),
+                SwitchPreference("morphe_hide_posts_shelf"),
                 SwitchPreference("morphe_hide_store_button"),
                 SwitchPreference("morphe_hide_subscribe_button_in_channel_page"),
             ),
         ),
         SwitchPreference("morphe_hide_album_cards"),
         SwitchPreference("morphe_hide_artist_cards"),
-        SwitchPreference("morphe_hide_chips_shelf"),
         SwitchPreference("morphe_hide_community_posts"),
         SwitchPreference("morphe_hide_compact_banner"),
-        SwitchPreference("morphe_hide_expandable_card"),
+        if (is_20_26_or_greater) {
+            ListPreference("morphe_hide_expandable_card")
+        } else {
+            ListPreference(
+                key = "morphe_hide_expandable_card",
+                entriesKey = "morphe_hide_expandable_card_legacy_entries",
+                entryValuesKey = "morphe_hide_expandable_card_legacy_entry_values"
+            )
+        },
 //        PreferenceCategory(
 //            titleKey = null,
 //            sorting = Sorting.UNSORTED,
@@ -204,7 +214,6 @@ val HideLayoutComponents = patch(
             tag = BulletPointSwitchPreference::class.java
         ),
         SwitchPreference("morphe_hide_image_shelf"),
-        SwitchPreference("morphe_hide_latest_posts"),
         SwitchPreference("morphe_hide_latest_videos_button"),
         SwitchPreference("morphe_hide_mix_playlists"),
         SwitchPreference("morphe_hide_movies_section"),

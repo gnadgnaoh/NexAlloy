@@ -51,13 +51,6 @@ val lithoThreadExecutorFingerprint = fingerprint {
     literal { 1L }
 }
 
-val lithoConverterBufferUpbFeatureFlagFingerprint = fingerprint {
-//    accessFlags(AccessFlags.PUBLIC, AccessFlags.STATIC)
-//    returns("L")
-//    parameters("L")
-    literal { 45419603L }
-}
-
 //region rvxp
 val conversionContextClass = findClassDirect {
     conversionContextFingerprintToString(this).declaredClass!!
@@ -81,10 +74,11 @@ val emptyComponentClass = findClassDirect {
 }
 
 val featureFlagCheck = findMethodDirect {
-    lithoConverterBufferUpbFeatureFlagFingerprint().invokes.findMethod {
+    findMethod {
         matcher {
             returnType = "boolean"
             paramTypes("long", "boolean")
+            addInvoke { paramTypes(null, "long", "boolean") }
         }
     }.single()
 }

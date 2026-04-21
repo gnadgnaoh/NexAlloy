@@ -1,4 +1,4 @@
-package io.github.nexalloy.morphe.music.layout.premium
+package io.github.nexalloy.morphe.music.ad.general
 
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Opcode
