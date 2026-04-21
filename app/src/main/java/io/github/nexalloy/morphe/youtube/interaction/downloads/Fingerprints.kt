@@ -2,6 +2,7 @@ package io.github.nexalloy.morphe.youtube.interaction.downloads
 
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.anyInstruction
 import io.github.nexalloy.morphe.string
 
 internal object OfflineVideoEndpointFingerprint : Fingerprint(
@@ -14,6 +15,12 @@ internal object OfflineVideoEndpointFingerprint : Fingerprint(
         "L",
     ),
     filters = listOf(
-        string("Object is not an offlineable video: ")
-    )
+        anyInstruction(
+            string("Unsupported Offline Video Action: "), // 21.14 and lower
+            string("Unsupported Offline Video Action: %s") // 21.15+
+        )
+    ),
+    custom = {
+        addUsingString("Unsupported Offline Video Action: ")
+    }
 )

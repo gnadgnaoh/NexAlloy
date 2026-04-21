@@ -3,6 +3,7 @@ package io.github.nexalloy.morphe.youtube.misc.litho.filter
 import app.morphe.extension.youtube.patches.components.Filter
 import app.morphe.extension.youtube.patches.components.LithoFilterPatch
 import app.morphe.extension.youtube.shared.ConversionContext
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_15_or_greater
 import io.github.nexalloy.new
 import io.github.nexalloy.patch
 import java.nio.ByteBuffer
@@ -65,10 +66,12 @@ val LithoFilter = patch(
     // Turn off a feature flag that enables native code of protobuf parsing (Upb protobuf).
     // If this is enabled, then the litho protobuffer hook will always show an empty buffer
     // since it's no longer handled by the hooked Java code.
-    ::featureFlagCheck.hookMethod {
-        before {
-            if (it.args[0] == 45419603L)
-                it.result = false
+    if (!is_21_15_or_greater) {
+        ::featureFlagCheck.hookMethod {
+            before {
+                if (it.args[0] == 45419603L)
+                    it.result = false
+            }
         }
     }
 
