@@ -229,7 +229,7 @@ val VideoInformationPatch = patch(
         override fun patch_getResolution(): Int = getResolution(quality)
         override fun toString(): String = quality.toString()
         override fun equals(other: Any?): Boolean =
-            other is VideoQualityProxy && quality === other.quality
+            other is VideoQualityProxy && quality == other.quality
         override fun hashCode(): Int = quality.hashCode()
     }
 

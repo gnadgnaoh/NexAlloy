@@ -63,6 +63,7 @@ class AppPatchSettingsActivity : Activity() {
             val appName = arguments?.getString(ARGUMENT_APP_NAME)
             val appPatchInfo = appPatchConfigurations.find { it.appName == appName }
             if (appPatchInfo == null) throw Exception("AppPatchInfo not found, app_name: $appName")
+            val defaultPatchStates = appPatchInfo.patches.associate { it.name to it.use }
 
             val screen = preferenceManager.createPreferenceScreen(context)
             /** XSharedPreference
@@ -74,8 +75,8 @@ class AppPatchSettingsActivity : Activity() {
                 @Deprecated("Deprecated in Java")
                 override fun onBindView(view: View) {
                     super.onBindView(view)
-                    view.findViewById<Button>(R.id.button_all).setOnClickListener {
-                        setAllPreferences(true)
+                    view.findViewById<Button>(R.id.button_default).setOnClickListener {
+                        restoreDefaultPreferences(defaultPatchStates)
                     }
                     view.findViewById<Button>(R.id.button_none).setOnClickListener {
                         setAllPreferences(false)
@@ -130,6 +131,16 @@ class AppPatchSettingsActivity : Activity() {
                 val preference = preferenceScreen.getPreference(i)
                 if (preference is CheckBoxPreference) {
                     preference.isChecked = enable
+                }
+            }
+        }
+
+        fun restoreDefaultPreferences(defaultPatchStates: Map<String, Boolean>) {
+            if (!isAdded) return
+            for (i in 0 until preferenceScreen.preferenceCount) {
+                val preference = preferenceScreen.getPreference(i)
+                if (preference is CheckBoxPreference) {
+                    preference.isChecked = defaultPatchStates[preference.key] ?: preference.isChecked
                 }
             }
         }

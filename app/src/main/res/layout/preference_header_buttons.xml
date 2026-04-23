@@ -6,12 +6,12 @@
     android:orientation="horizontal">
 
     <Button
-        android:id="@+id/button_all"
+        android:id="@+id/button_default"
         style="?android:attr/buttonBarButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_column="0"
-        android:text="All" />
+        android:text="Default" />
 
     <Button
         android:id="@+id/button_none"
