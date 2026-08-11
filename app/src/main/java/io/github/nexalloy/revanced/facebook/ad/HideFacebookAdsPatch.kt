@@ -27,7 +27,10 @@ import io.github.nexalloy.revanced.facebook.hookLateFeedListSanitizer
 import io.github.nexalloy.revanced.facebook.hookListBuilderAppend
 import io.github.nexalloy.revanced.facebook.hookListResultFilter
 import io.github.nexalloy.revanced.facebook.hookPlayableAdActivity
+import io.github.nexalloy.revanced.facebook.hookAdPluginListBuilder
+import io.github.nexalloy.revanced.facebook.hookPluginDescriptorGate
 import io.github.nexalloy.revanced.facebook.hookPluginPackFallback
+import io.github.nexalloy.revanced.facebook.hookPluginPackList
 import io.github.nexalloy.revanced.facebook.hookReelsBannerRender
 import io.github.nexalloy.revanced.facebook.hookSponsoredPoolAdd
 import io.github.nexalloy.revanced.facebook.hookSponsoredPoolListMethods
@@ -36,8 +39,7 @@ import io.github.nexalloy.revanced.facebook.hookSponsoredStoryListMethods
 import io.github.nexalloy.revanced.facebook.hookSponsoredStoryNext
 import io.github.nexalloy.revanced.facebook.hookStoryAdProvider
 import io.github.nexalloy.revanced.facebook.hookStoryPoolAdd
-import io.github.nexalloy.revanced.facebook.installFacebook571FeedComponentGuard
-import io.github.nexalloy.revanced.facebook.installFacebook571FeedSourceFastPath
+import io.github.nexalloy.revanced.facebook.hookFeedCollectionAddEdge
 import io.github.nexalloy.revanced.facebook.resolveListBuilderAppendMethod
 import io.github.nexalloy.revanced.facebook.resolveListBuilderFactoryMethod
 import io.github.nexalloy.revanced.facebook.resolveInstreamBannerEligibilityMethod
@@ -60,43 +62,74 @@ val HideFacebookAds = patch(
     name = "Hide Facebook ads",
     description = "Removes sponsored feed stories, Reels ads, game ads, and banner ads.",
 ) {
-    // ── 0. FB571 hardcoded-class fast-path feed hooks ─────────────────────────
-    // Ported from upstream installFacebook571FeedSourceFastPath / FeedComponentGuard.
-    // These resolve obfuscated feed classes by name (Class.forName) instead of DexKit,
-    // catching sponsored edges at the decoded-response, cached-section, addNewEdge
-    // collection, and Litho-component-render stages. Run first so any already-loaded
-    // feed classes get hooked immediately; per-method dedup sets prevent double-hooking
-    // when the DexKit path below resolves the same method. Upstream schedules these
-    // across dex-ready callbacks + retries via Module.java — NexAlloy applies the whole
-    // patch once at Application.onCreate, so they run inline here.
-
-    runCatching { installFacebook571FeedSourceFastPath(classLoader) }
-    runCatching { installFacebook571FeedComponentGuard(classLoader) }
+    // ── 0. Readiness gate ────────────────────────────────────────────────────
+    // The former FB571 fast paths (Class.forName on pinned X.* names) are gone. Every
+    // target below is resolved structurally by DexKit, so the patch survives Facebook
+    // renaming its obfuscated classes between builds.
+    //
+    // Facebook loads its feed code from Superpack-compressed secondary dex, so at
+    // Application.onCreate a DexKit scan can legitimately see nothing. Every hook below
+    // is wrapped in runCatching, which would make this patch report success while having
+    // hooked nothing at all. So probe one fingerprint that is known to exist on every
+    // build and throw if it misses: KatanaDexGate treats the failure as "not ready yet"
+    // and re-runs the whole patch once more dex is installed. Re-running is safe — the
+    // hook helpers deduplicate by method.
+    runCatching { ::sponsoredPoolAddMethodFingerprint.method }.getOrElse {
+        error("Facebook feed dex is not visible yet - deferring patch")
+    }
 
     // ── 1. Ad-kind enum & Reels list-builder ─────────────────────────────────
 
-    val adKindEnumClass = ::adKindEnumFingerprint.clazz
-    val storyInspector  = AdStoryInspector(adKindEnumClass)
+    // Both of these were previously unwrapped: a resolution failure threw out of the
+    // patch body and silently cancelled every hook after it. They are optional now.
+    val storyInspector = runCatching { AdStoryInspector(::adKindEnumFingerprint.clazz) }.getOrNull()
 
     // listBuilderClass itself is DexKit-cached; the specific append/factory method on
     // it is then picked via a plain-reflection scoring heuristic (no DexKit search),
     // matching upstream's more flexible (non-rigid-param-shape) resolution.
-    val listBuilderClass = ::listBuilderClassFingerprint.clazz
+    val listBuilderClass = runCatching { ::listBuilderClassFingerprint.clazz }.getOrNull()
 
-    runCatching {
-        hookListBuilderAppend(resolveListBuilderAppendMethod(listBuilderClass), storyInspector)
-    }
+    if (storyInspector != null && listBuilderClass != null) {
+        runCatching {
+            hookListBuilderAppend(resolveListBuilderAppendMethod(listBuilderClass), storyInspector)
+        }
 
-    runCatching {
-        resolveListBuilderFactoryMethod(listBuilderClass)?.let { factoryMethod ->
-            hookListResultFilter(factoryMethod, "list factory", storyInspector)
+        runCatching {
+            resolveListBuilderFactoryMethod(listBuilderClass)?.let { factoryMethod ->
+                hookListResultFilter(factoryMethod, "list factory", storyInspector)
+            }
         }
     }
 
     // Both FbShortsViewerPluginPack and MarketplaceAdsPluginPack
-    ::pluginPackMethodsFingerprint.dexMethodList.forEach { dm ->
-        runCatching { hookPluginPackFallback(dm.toMethod(), storyInspector) }
+    if (storyInspector != null) {
+        ::pluginPackMethodsFingerprint.dexMethodList.forEach { dm ->
+            runCatching { hookPluginPackFallback(dm.toMethod(), storyInspector) }
+        }
     }
+
+    // ── 2b. In-video ads: the video plugin system ─────────────────────────────
+    //
+    // Ads served inside a video rather than as their own feed story. Three layers,
+    // because Facebook delivers them by three different routes:
+    //
+    //   packs       - a pack whose whole purpose is ads; its plugin list is emptied
+    //   descriptors - individual ad plugins carried by a pack that also carries organic
+    //                 ones, or by a pack whose name is built at runtime; each is refused
+    //                 at its own eligibility gate
+    //   builders    - ad plugins assembled by a static builder with no pack object at all
+    //
+    // All three filter per instance, so organic packs, descriptors and plugins are never
+    // touched. Nothing here pins an obfuscated name.
+
+    runCatching { ::allPluginPackListMethodsFingerprint.dexMethodList }.getOrNull().orEmpty()
+        .forEach { dm -> runCatching { hookPluginPackList(dm.toMethod()) } }
+
+    runCatching { ::pluginDescriptorGateMethodsFingerprint.dexMethodList }.getOrNull().orEmpty()
+        .forEach { dm -> runCatching { hookPluginDescriptorGate(dm.toMethod()) } }
+
+    runCatching { ::directMonetizationAdsPluginListFingerprint.dexMethodList }.getOrNull().orEmpty()
+        .forEach { dm -> runCatching { hookAdPluginListBuilder(dm.toMethod()) } }
 
     // ── 2. Instream banner & indicator pill ───────────────────────────────────
 
@@ -115,10 +148,22 @@ val HideFacebookAds = patch(
 
     // ── 4. Feed CSR cache filter ──────────────────────────────────────────────
 
-    val storyPoolAddMethods = ::storyPoolAddMethodsFingerprint.dexMethodList.mapNotNull { dm ->
-        runCatching { dm.toMethod() }.getOrNull()
-    }
-    val feedItemInspector = FeedItemInspector(storyPoolAddMethods.map { it.parameterTypes[0] })
+    val storyPoolAddMethods = runCatching {
+        ::storyPoolAddMethodsFingerprint.dexMethodList.mapNotNull { dm ->
+            runCatching { dm.toMethod() }.getOrNull()
+        }
+    }.getOrNull().orEmpty()
+
+    // The item-contract interfaces come from the story-pool add parameter (verified on
+    // FB 573: X.3Ws — a 0-arg boolean, a 0-arg Object edge getter and a model getter).
+    // Types that expose no 0-arg accessor at all are dropped so they can't shadow the
+    // real contract during shape-based accessor resolution.
+    val feedItemInspector = FeedItemInspector(
+        storyPoolAddMethods
+            .mapNotNull { it.parameterTypes.firstOrNull() }
+            .distinct()
+            .filter { type -> type.methods.any { it.parameterCount == 0 && it.returnType != Void.TYPE } }
+    )
 
     ::feedCsrFilterMethodsFingerprint.dexMethodList.forEach { dm ->
         runCatching {
@@ -128,6 +173,12 @@ val HideFacebookAds = patch(
             }.coerceAtLeast(0)
             hookFeedCsrFilterInput(FeedCsrFilterHook(method, listArgIndex), feedItemInspector)
         }
+    }
+
+    // ── 4b. addNewEdgeToCollection filter ─────────────────────────────────────
+
+    runCatching {
+        hookFeedCollectionAddEdge(::feedCollectionAddEdgeMethodFingerprint.method, feedItemInspector)
     }
 
     // ── 5. Late feed list sanitisers ──────────────────────────────────────────
@@ -164,9 +215,23 @@ val HideFacebookAds = patch(
 
     // ── 8. Story ad provider (in-disc) ────────────────────────────────────────
 
-    runCatching {
-        val insertionTrigger = runCatching { ::storyAdsInsertionTriggerMethodFingerprint.method }.getOrNull()
-        hookStoryAdProvider(resolveStoryAdProviderHooks(::storyAdsInDiscClassFingerprint.clazz, true, insertionTrigger))
+    // Every class that logs "ads_deletion" AND carries the provider shape — this replaces
+    // both the single-class lookup and the six pinned FB571_STORY_AD_SOURCE_CLASSES.
+    val insertionTrigger = runCatching { ::storyAdsInsertionTriggerMethodFingerprint.method }.getOrNull()
+    val providerClasses = runCatching {
+        ::storyAdsInDiscMethodsFingerprint.dexMethodList.mapNotNull { dm ->
+            runCatching { dm.toMethod().declaringClass }.getOrNull()
+        }.distinct()
+    }.getOrNull().orEmpty().ifEmpty {
+        listOfNotNull(runCatching { ::storyAdsInDiscClassFingerprint.clazz }.getOrNull())
+    }
+    providerClasses.forEachIndexed { index, providerClass ->
+        runCatching {
+            // Only the first provider gets the insertion trigger, matching upstream.
+            hookStoryAdProvider(
+                resolveStoryAdProviderHooks(providerClass, index == 0, insertionTrigger)
+            )
+        }
     }
 
     // ── 9. Game ad requests + bridge ─────────────────────────────────────────
