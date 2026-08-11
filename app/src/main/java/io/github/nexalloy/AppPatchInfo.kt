@@ -14,7 +14,14 @@ import io.github.nexalloy.revanced.strava.StravaPatches
 import io.github.nexalloy.morphe.twitter.TwitterPatches
 import io.github.nexalloy.morphe.twitter.utils.Constants.PACKAGE_NAME as TWITTER_PACKAGE_NAME
 
-class AppPatchInfo(val appName: String, val packageName: String, val patches: Array<Patch>)
+enum class DexSource { APK_PATH, CLASS_LOADER }
+
+class AppPatchInfo(
+    val appName: String,
+    val packageName: String,
+    val patches: Array<Patch>,
+    val dexSource: DexSource = DexSource.APK_PATH,
+)
 
 val appPatchConfigurations = listOf(
     AppPatchInfo("YouTube", "com.google.android.youtube", YouTubePatches),
@@ -26,9 +33,10 @@ val appPatchConfigurations = listOf(
     AppPatchInfo("Threads", "com.instagram.barcelona", ThreadsPatches),
     AppPatchInfo("Strava", "com.strava", StravaPatches),
     AppPatchInfo("AllTrails", "com.alltrails.alltrails", AllTrailsPatches),
-    AppPatchInfo("Facebook", "com.facebook.katana", FacebookPatches),
+    AppPatchInfo("Facebook", "com.facebook.katana", FacebookPatches, DexSource.CLASS_LOADER),
     AppPatchInfo("Google (Discover)", "com.google.android.googlequicksearchbox", GoogleDiscoverPatches),
     AppPatchInfo("Twitter/X", TWITTER_PACKAGE_NAME, TwitterPatches),
 )
 
 val patchesByPackage = appPatchConfigurations.associate { it.packageName to it.patches }
+val dexSourceByPackage = appPatchConfigurations.associate { it.packageName to it.dexSource }
