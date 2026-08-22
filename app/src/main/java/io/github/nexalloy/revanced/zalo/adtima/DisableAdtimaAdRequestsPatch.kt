@@ -53,7 +53,7 @@ val DisableAdtimaVideoAdRequests = patch(
     name = "Block Adtima video ad requests",
     description = "Also blocks pre-roll, mid-roll and audio ad requests. May delay or stall " +
             "playback if Zalo waits for an ad result — turn this off first if video stops starting.",
-    use = false,
+    use = true,
 ) {
     blockAdtimaEntryPoints(
         "Adtima video ads",
