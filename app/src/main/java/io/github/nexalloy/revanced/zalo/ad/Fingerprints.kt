@@ -1,8 +1,10 @@
 package io.github.nexalloy.revanced.zalo.ads
 
+import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.morphe.findMethodListDirect
 import io.github.nexalloy.morphe.fingerprint
 import io.github.nexalloy.revanced.zalo.ZaloFeedKeys
+import org.luckypray.dexkit.query.enums.StringMatchType
 
 val feedAdsBindFingerprint = fingerprint {
     strings("zinstantMediaType")
@@ -15,15 +17,16 @@ val feedAdsLayoutHeightFingerprint = fingerprint {
     returns("I")
 }
 
-val feedContentParserFingerprint = fingerprint {
-    strings(
-        ZaloFeedKeys.TRACK_ADS,
-        ZaloFeedKeys.ADS_DATA,
-        ZaloFeedKeys.ADS_THUMB,
-        ZaloFeedKeys.ADS_ACTION,
-        ZaloFeedKeys.TEMPLATE_ID,
-    )
-    parameters("I", "Lorg/json/JSONObject;")
+val feedItemPreCheckFingerprint = findMethodDirect {
+    findMethod {
+        matcher {
+            usingStrings(listOf(ZaloFeedKeys.PRE_CHECK), StringMatchType.Equals)
+            returnType = "boolean"
+            paramTypes(listOf("org.json.JSONObject"))
+        }
+    }.filter { candidate ->
+        candidate.invokes.any { it.className == "org.json.JSONArray" && it.name == "get" }
+    }.single()
 }
 
 val storyAdsBindFingerprint = fingerprint {
@@ -45,6 +48,7 @@ val adsNativeLayoutFingerprint = fingerprint {
     name("getStartTimeShow")
     returns("J")
     parameters()
+    classMatcher { className(".AdsNativeLayout", StringMatchType.EndsWith) }
 }
 
 val advertisingItemFingerprints = findMethodListDirect {

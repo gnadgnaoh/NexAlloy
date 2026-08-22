@@ -4,24 +4,30 @@ import android.view.View
 import app.morphe.extension.shared.Logger
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.patch
+import io.github.nexalloy.revanced.zalo.keepHiddenAsAd
 
 val HideShortVideoAds = patch(
     name = "Hide Zalo Video ads",
     description = "Hides ad containers, native ad layouts and outstream ads in Zalo Video.",
 ) {
-    val resolved = buildList {
-        add("outstream" to ::outstreamAdsLayoutFingerprint.dexMethod.className)
-        add("adsTemplate" to ::adsTemplateLayoutFingerprint.dexMethod.className)
-        add("adsNative" to ::adsNativeLayoutFingerprint.dexMethod.className)
-        ::advertisingItemFingerprints.dexMethodList.forEach {
-            add("advertisingItem" to it.className)
-        }
-    }.distinctBy { it.second }
+    val resolved = mutableListOf<Pair<String, String>>()
+    val unresolved = mutableListOf<String>()
 
-    val failures = mutableListOf<String>()
+    fun resolve(label: String, classNames: () -> List<String>) {
+        runCatching(classNames)
+            .onSuccess { names -> names.forEach { resolved += label to it } }
+            .onFailure { unresolved += "$label (${it.javaClass.simpleName}: ${it.message})" }
+    }
+
+    resolve("outstream") { listOf(::outstreamAdsLayoutFingerprint.dexMethod.className) }
+    resolve("adsTemplate") { listOf(::adsTemplateLayoutFingerprint.dexMethod.className) }
+    resolve("adsNative") { listOf(::adsNativeLayoutFingerprint.dexMethod.className) }
+    resolve("advertisingItem") { ::advertisingItemFingerprints.dexMethodList.map { it.className } }
+
+    val hookFailures = mutableListOf<String>()
     var hooked = 0
 
-    for ((label, className) in resolved) {
+    for ((label, className) in resolved.distinctBy { it.second }) {
         try {
             val cls = classLoader.loadClass(className)
 
@@ -36,21 +42,27 @@ val HideShortVideoAds = patch(
             constructors.forEach { constructor ->
                 constructor.isAccessible = true
                 constructor.hookMethod {
-                    after { param ->
-                        (param.thisObject as? View)?.visibility = View.GONE
-                    }
+                    after { param -> (param.thisObject as? View)?.keepHiddenAsAd() }
                 }
             }
 
             hooked++
             Logger.printInfo { "[Zalo] $label -> $className (${constructors.size} ctor)" }
         } catch (t: Throwable) {
-            failures += "$label -> $className (${t.javaClass.simpleName}: ${t.message})"
+            hookFailures += "$label -> $className (${t.javaClass.simpleName}: ${t.message})"
         }
     }
 
-    if (failures.isNotEmpty()) {
-        error("Zalo Video ad hooks failed: ${failures.joinToString("; ")}")
+    if (unresolved.isNotEmpty() || hookFailures.isNotEmpty()) {
+        Logger.printInfo {
+            "[Zalo] Zalo Video ads, degraded: unresolved=[${unresolved.joinToString("; ")}] " +
+                    "hookFailed=[${hookFailures.joinToString("; ")}]"
+        }
     }
-    check(hooked > 0) { "Zalo Video: every resolved target was skipped" }
+
+    check(hooked > 0) {
+        "Zalo Video: no ad target could be hooked. " +
+                "unresolved=[${unresolved.joinToString("; ")}] " +
+                "hookFailed=[${hookFailures.joinToString("; ")}]"
+    }
 }
