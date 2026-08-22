@@ -160,14 +160,37 @@ class PatchExecutor(val appContext: Application, val lpparam: LoadPackageParam) 
     // cache
     private val moduleRel = BuildConfig.COMMIT_HASH
     private var cache = SharedPrefCache(appContext)
-    private var dexkit = run {
+    private val dexSource = dexSourceByPackage[lpparam.packageName] ?: DexSource.APK_PATH
+
+    init {
         System.loadLibrary("dexkit")
         DexKitCacheBridge.init(cache)
-        DexKitCacheBridge.create("", lpparam.appInfo.sourceDir)
     }
+
+    /**
+     * Opens a DexKit bridge over the configured source. Re-creatable, because the
+     * CLASS_LOADER source only ever sees the dex files that are loaded *right now*, so
+     * a deferred retry has to re-open it to pick up dex installed since the last try.
+     */
+    private fun openDexKit() = when (dexSource) {
+        // Reads the live ClassLoader's dex elements instead of base.apk. Needed by apps
+        // whose real bytecode never appears as classes*.dex inside the APK.
+        DexSource.CLASS_LOADER -> DexKitCacheBridge.create(lpparam.packageName, classLoader)
+        DexSource.APK_PATH -> DexKitCacheBridge.create("", lpparam.appInfo.sourceDir)
+    }
+
+    private var dexkit = openDexKit()
 
     fun applyPatches(patches: Array<Patch>) {
         this.patches = patches
+        if (dexSource == DexSource.CLASS_LOADER) {
+            // Deferred path — see KatanaDexGate. Only apps declared CLASS_LOADER take it,
+            // so every other app keeps the original single-shot behaviour untouched.
+            // The eagerly opened bridge is released; the gate opens a fresh one per pass.
+            runCatching { dexkit.close() }
+            dexGate = KatanaDexGate(this).also { it.start() }
+            return
+        }
         val t = measureTimeMillis {
             loadCacheIfValid()
             try {
@@ -179,6 +202,60 @@ class PatchExecutor(val appContext: Application, val lpparam: LoadPackageParam) 
             }
         }
         Logger.printDebug { "${lpparam.packageName} handleLoadPackage: ${t}ms" }
+    }
+
+    // ── Deferred (CLASS_LOADER) support ──────────────────────────────────────
+    // Only used by the gate; no effect on the APK_PATH path above.
+
+    private var dexGate: KatanaDexGate? = null
+    private var cacheChecked = false
+
+    /** Count of patches the user actually has enabled, used as the completion target. */
+    internal val enabledPatchCount: Int
+        get() = patches.count { patchPreferences?.getBoolean(it.name, it.use) ?: it.use }
+
+    internal val outstandingPatchCount: Int
+        get() = enabledPatchCount - appliedPatches.size
+
+    /**
+     * Runs one full resolution pass with a freshly opened bridge.
+     *
+     * @param probe returns true when the app's real bytecode is loaded and visible.
+     *              When it returns false the pass is abandoned without touching the
+     *              cache, so a later retry can try again against more dex files.
+     * @return true when every enabled patch has now been applied.
+     */
+    internal fun runDeferredAttempt(finalAttempt: Boolean, probe: () -> Boolean): Boolean {
+        // Probe BEFORE opening a bridge: a failed probe must cost nothing more than two
+        // ClassLoader lookups, so the early retries are effectively free.
+        if (!finalAttempt && !runCatching { probe() }.getOrDefault(false)) {
+            Logger.printDebug { "${lpparam.packageName}: dex not ready yet, will retry" }
+            return false
+        }
+        val bridge = runCatching { openDexKit() }.getOrElse { err ->
+            XposedBridge.log(err)
+            return false
+        }
+        try {
+            dexkit = bridge
+            if (!cacheChecked) {
+                loadCacheIfValid()
+                cacheChecked = true
+            }
+            failedPatches.clear()
+            val t = measureTimeMillis { executePatches() }
+            Logger.printDebug {
+                "${lpparam.packageName} attempt: ${t}ms applied=${appliedPatches.size}/$enabledPatchCount"
+            }
+            val done = outstandingPatchCount <= 0 && failedPatches.isEmpty()
+            if (done || finalAttempt) {
+                finalizePatching()
+                logDebugInfo()
+            }
+            return done
+        } finally {
+            runCatching { bridge.close() }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
