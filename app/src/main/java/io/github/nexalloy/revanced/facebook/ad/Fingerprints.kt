@@ -1796,3 +1796,57 @@ val feedAdRequestParamMethodsFingerprint = findMethodListDirect {
     ).filter { it.returnTypeName == "void" && it.isConcreteHookTarget() }
         .distinctBy { it.descriptor }
 }
+
+// ─── Trình phát TOÀN MÀN HÌNH (short-form deep dive) ──────────────────────────
+//
+// Surface mà mọi thứ ở trên bỏ sót: bấm "Toàn màn hình" trên một video trong feed sẽ mở
+// trình phát deep-dive nằm ngang, có hàng đợi "TIẾP THEO" riêng — và hàng đợi đó tự xin
+// quảng cáo của nó, bằng một pipeline không dùng chung literal nào với feed hay với Reels
+// viewer. Đó là lý do một người dùng bật đủ mọi patch vẫn thấy quảng cáo toàn màn hình.
+//
+// Tìm ra bằng cách đọc thân method trong dex chứ không phải đoán theo tên. Class fetch
+// quảng cáo của chuỗi phát dựng một GraphQL query với đúng các tham số này:
+//
+//     "async_ads_request_type"      = "INTERSTITIAL"
+//     "page_type"                   = "PAGE_MOBILE_REELS"
+//     "feed_story_render_location"  = "fb_shorts_video_deep_dive"
+//     ... và log lỗi của nó là "Failed to fetch ad for chain "
+//
+// Ba lambda anh em cùng họ dựng các biến thể khác của cùng một request, trong đó một cái
+// mang "POE_TRIGGERED_INTERSTITIAL" và "POST_ROLL_TRIGGERED_INTERSTITIAL" — quảng cáo xen
+// giữa và quảng cáo chạy sau khi video kết thúc, đúng thứ chen vào giữa hai video trong
+// hàng đợi.
+//
+// Neo bằng CẶP chuỗi chứ không phải một chuỗi: "async_ads_request_type" một mình xuất hiện
+// ở nhiều tầng ads khác, "fb_shorts_video_deep_dive" một mình có ở cả code organic. Đi cùng
+// nhau thì chỉ còn đúng năm method, và cả năm đều là request quảng cáo. Một trong năm cái đó
+// là doAdChannelNetworkRequest vốn đã bị mục 6 chặn — trùng lặp vô hại vì hook helper tự khử
+// theo method.
+
+val deepDiveAsyncAdRequestMethodsFingerprint = findMethodListDirect {
+    findMethod {
+        matcher { usingStrings("async_ads_request_type", "fb_shorts_video_deep_dive") }
+    }.filter { it.isConcreteHookTarget() }.distinctBy { it.descriptor }
+}
+
+/**
+ * Bước CHÈN quảng cáo vào hàng đợi phát tiếp, nằm cùng class với bước fetch ở trên.
+ *
+ * Chặn fetch là đủ cho một phiên sạch, nhưng chuỗi phát còn có đường prefetch riêng (log lỗi
+ * "Failed to prefetch ad for chain ") có thể đã cầm sẵn một quảng cáo từ trước khi hook kịp
+ * cài. Bước chèn là chỗ duy nhất cả hai đường đều phải đi qua.
+ *
+ * Class này chỉ có đúng hai method static void — một fetch, một chèn — và không mang literal
+ * nào ngoài từ vựng quảng cáo, nên chặn cả hai không đụng tới nội dung tự nhiên. Nếu một bản
+ * Facebook sau này nhét thêm việc khác vào đây thì cách nhận ra là hàng đợi "TIẾP THEO" ngừng
+ * nạp video mới; tắt [BlockFacebookAdRequests] là quay lại như cũ.
+ */
+val deepDiveChainAdMethodsFingerprint = findMethodListDirect {
+    findMethod {
+        matcher { usingStrings("async_ads_request_type", "sfd_chaining") }
+    }.mapNotNull { it.declaredClass }
+        .distinctBy { it.name }
+        .flatMap { cls ->
+            cls.findMethod { matcher { modifiers = Modifier.STATIC; returnType = "void" } }
+        }.filter { it.isConcreteHookTarget() }.distinctBy { it.descriptor }
+}

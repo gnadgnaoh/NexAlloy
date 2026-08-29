@@ -1,6 +1,7 @@
 package io.github.nexalloy.revanced.facebook.ad
 
 import io.github.nexalloy.patch
+import io.github.nexalloy.revanced.facebook.hookAdQueryFetch
 import io.github.nexalloy.revanced.facebook.hookAdRequestNoOp
 import io.github.nexalloy.revanced.facebook.hookEmptyCollectionResult
 import io.github.nexalloy.revanced.facebook.hookForceBoolean
@@ -55,6 +56,7 @@ val BlockFacebookAdRequests = patch(
     name = "Block Facebook ad requests",
     description = "Stops the feed, Stories, Reels and Watch asking for ads in the first place, instead of removing them afterwards. Turn off if a feed or the Stories viewer stops loading.",
 ) {
+
     // ── 1. News feed async ad channel ────────────────────────────────────────
     //
     // Request and response are both hooked. The request alone is not enough: the
@@ -157,6 +159,25 @@ val BlockFacebookAdRequests = patch(
 
     runCatching { ::feedAdRequestParamMethodsFingerprint.dexMethodList }.getOrNull().orEmpty()
         .forEach { dm -> runCatching { hookAdRequestNoOp(dm.toMethod()) } }
-        
-}
 
+    // ── 13. Trình phát toàn màn hình (short-form deep dive) ──────────────────
+    //
+    // Surface riêng, hàng đợi "TIẾP THEO" riêng, pipeline quảng cáo riêng — và trước đây
+    // không có một dòng nào trong module chạm tới nó. Xem
+    // [deepDiveAsyncAdRequestMethodsFingerprint] để biết nó được tìm ra thế nào.
+    //
+    // Hai kiểu trả về nên hai cách chặn: method void thì bỏ qua thân, còn lambda Kotlin
+    // trả Object thì trả null — đúng cách mục 9 đã làm với query ads của Search AI mode,
+    // vốn cũng là một lambda invoke(): Object.
+
+    runCatching { ::deepDiveAsyncAdRequestMethodsFingerprint.dexMethodList }.getOrNull().orEmpty()
+        .forEach { dm ->
+            runCatching {
+                val method = dm.toMethod()
+                if (method.returnType == Void.TYPE) hookAdRequestNoOp(method) else hookAdQueryFetch(method)
+            }
+        }
+
+    runCatching { ::deepDiveChainAdMethodsFingerprint.dexMethodList }.getOrNull().orEmpty()
+        .forEach { dm -> runCatching { hookAdRequestNoOp(dm.toMethod()) } }
+}
