@@ -25,7 +25,7 @@ val SanitizeTrackingLinks = patch(
             
             Logger.printDebug { "Sanitize tracking link: $text" }
             
-            text = text.replace(Regex("[?&](igsh|ig_rid|utm_source|story_media_id)=.*"), "")
+            text = text.replace(Regex("[?&](igsh|igsi|ig_rid|utm_source|story_media_id)=.*"), "")
 
             param.args[0] = ClipData.newPlainText("URL", text)
         }
