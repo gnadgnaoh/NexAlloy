@@ -11,12 +11,8 @@ import android.webkit.WebView
 import android.widget.TextView
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
-import io.github.libxposed.api.XposedInterface
 import org.json.JSONObject
-import org.xmlpull.v1.XmlPullParser
-import java.io.File
 import java.lang.reflect.Field
-import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.Collections
@@ -183,47 +179,15 @@ val GAME_AD_ACTIVITY_CLASS_NAMES = setOf(
 val HARD_BLOCKED_GAME_AD_ACTIVITY_CLASS_NAMES = setOf(NEKO_PLAYABLE_ACTIVITY_CLASS)
 
 /**
- * Minimal, read-only stand-in for the legacy `de.robv.android.xposed.XSharedPreferences`,
- * which libxposed does not provide (it replaced this pattern with
- * `XposedInterface.getRemotePreferences`, which needs a live hook context that isn't
- * available at class-init time here). Reads the module's own preferences XML directly off
- * disk, the same way the original implementation did — only the lookup used below
- * (`getString`) is implemented, since that's all this file needs.
- */
-private class LocalModuleSharedPreferences(packageName: String, prefFileName: String) {
-    val file: File = File("/data/data/$packageName/shared_prefs/$prefFileName.xml")
-
-    fun getString(key: String, defValue: String?): String? {
-        if (!file.canRead()) return defValue
-        return runCatching {
-            file.inputStream().use { stream ->
-                val parser = android.util.Xml.newPullParser()
-                parser.setInput(stream, "UTF-8")
-                var eventType = parser.eventType
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    if (eventType == XmlPullParser.START_TAG &&
-                        parser.name == "string" &&
-                        parser.getAttributeValue(null, "name") == key
-                    ) {
-                        return@use parser.nextText()
-                    }
-                    eventType = parser.next()
-                }
-                null
-            }
-        }.getOrNull() ?: defValue
-    }
-}
-
-/**
  * Optional, user-supplied class-name overrides. Nothing is pinned in source: this reads
  * an optional comma-separated list from the module's shared prefs so a future Facebook
  * build can be patched without recompiling. Returns an empty set when unset.
  */
 fun facebookClassNameOverrides(key: String): Set<String> = runCatching {
-    LocalModuleSharedPreferences(
+    de.robv.android.xposed.XSharedPreferences(
         io.github.nexalloy.BuildConfig.APPLICATION_ID, "facebook_overrides"
-    ).getString(key, null)
+    ).takeIf { it.file.canRead() }
+        ?.getString(key, null)
         ?.split(',')
         ?.map { it.trim() }
         ?.filter { it.isNotEmpty() }
@@ -822,43 +786,6 @@ class FeedItemInspector(itemContractTypes: Collection<Class<*>>) {
 
     private fun invokeNoThrow(method: Method?, target: Any?) =
         if (method == null || target == null) null else runCatching { method.invoke(target) }.getOrNull()
-}
-
-// ─── Local libxposed-compatible hook-param extras ──────────────────────────────
-//
-// The shim's XC_MethodHook.MethodHookParam (unlike the legacy Xposed API's) has no
-// per-invocation extra-data slot, so setObjectExtra/getObjectExtra are recreated here as
-// extension functions, backed by a map keyed on the param instance itself (each method
-// invocation gets its own MethodHookParam, so identity is a safe, collision-free key).
-// Weak keys let entries be collected once a call's before/after pair has finished.
-
-private val methodHookExtras =
-    Collections.synchronizedMap(WeakHashMap<XC_MethodHook.MethodHookParam, MutableMap<String, Any?>>())
-
-private fun XC_MethodHook.MethodHookParam.setObjectExtra(key: String, value: Any?) {
-    methodHookExtras.getOrPut(this) { mutableMapOf() }[key] = value
-}
-
-private fun XC_MethodHook.MethodHookParam.getObjectExtra(key: String): Any? =
-    methodHookExtras[this]?.get(key)
-
-/**
- * Local stand-in for the legacy Xposed API's static `XposedBridge.invokeOriginalMethod`.
- * libxposed has no direct equivalent, but `XposedInterface.getInvoker(method)` with
- * `Invoker.Type.ORIGIN` calls the original implementation, skipping the whole hook chain —
- * the same effect. Uses the shim's own `XposedBridge.xposedInterface` field, which is
- * already public and populated by `XposedBridge.register(...)` at module init.
- */
-private fun invokeOriginalMethod(method: Method, thisObject: Any?, args: Array<Any?>): Any? {
-    val xposedInterface = XposedBridge.xposedInterface
-        ?: throw IllegalStateException("xposedInterface has not been initialized. Call XposedBridge.register() first.")
-    return try {
-        xposedInterface.getInvoker(method)
-            .setType(XposedInterface.Invoker.Type.ORIGIN)
-            .invoke(thisObject, *args)
-    } catch (e: InvocationTargetException) {
-        throw e.cause ?: e
-    }
 }
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -1556,7 +1483,7 @@ fun hookGameAdResultMethods(bridgeClass: Class<*>) {
                 if (!shouldConvertGameAdRejectToSuccess(promiseId, reason)) return
                 val snapshot = gameAdPromiseSnapshots[promiseId]
                 val success = forceGameAdSuccessResult(promiseId, null, snapshot?.payload, snapshot?.messageType ?: gameAdPromiseTypeFromReason(reason))
-                runCatching { invokeOriginalMethod(resolveMethod, param.thisObject, arrayOf(promiseId, success)); param.result = null }
+                runCatching { XposedBridge.invokeOriginalMethod(resolveMethod, param.thisObject, arrayOf(promiseId, success)); param.result = null }
             }
         }); hooked++
     }
@@ -1570,7 +1497,7 @@ fun hookGameAdResultMethods(bridgeClass: Class<*>) {
                 if (!shouldConvertGameAdRejectToSuccess(promiseId, reason)) return
                 val snapshot = gameAdPromiseSnapshots[promiseId]
                 val success = forceGameAdSuccessResult(promiseId, null, snapshot?.payload ?: payload, snapshot?.messageType ?: gameAdPromiseTypeFromReason(reason))
-                runCatching { invokeOriginalMethod(resolveMethod, param.thisObject, arrayOf(promiseId, success)); param.result = null }
+                runCatching { XposedBridge.invokeOriginalMethod(resolveMethod, param.thisObject, arrayOf(promiseId, success)); param.result = null }
             }
         }); hooked++
     }
