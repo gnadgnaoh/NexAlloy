@@ -4,6 +4,7 @@ import app.morphe.extension.youtube.patches.components.PlaybackSpeedMenuFilter
 import app.morphe.extension.youtube.patches.playback.speed.CustomPlaybackSpeedPatch
 import app.morphe.extension.youtube.patches.playback.speed.CustomPlaybackSpeedPatch.customPlaybackSpeeds
 import de.robv.android.xposed.XC_MethodReplacement
+import io.github.nexalloy.invokeOriginalMethod
 import io.github.nexalloy.morphe.shared.misc.litho.filter.addLithoFilter
 import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference

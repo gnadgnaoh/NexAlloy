@@ -4,6 +4,7 @@ package io.github.nexalloy
 
 import dalvik.system.BaseDexClassLoader
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam
+import de.robv.android.xposed.XposedBridge.invokeOriginalMethod
 import de.robv.android.xposed.XposedHelpers.callMethod
 import de.robv.android.xposed.XposedHelpers.callStaticMethod
 import de.robv.android.xposed.XposedHelpers.findClass
@@ -30,6 +31,11 @@ import java.util.Enumeration
 
 typealias MethodHookParam = MethodHookParam
 typealias Replacer = (MethodHookParam) -> Any?
+
+fun MethodHookParam.invokeOriginalMethod(): Any? = invokeOriginalMethod(method, thisObject, args)
+
+fun MethodHookParam.invokeOriginalMethod(args: Array<*>?): Any? =
+    invokeOriginalMethod(method, thisObject, args)
 
 inline fun <T, R> T.runCatchingOrNull(func: T.() -> R?) = try {
     func()

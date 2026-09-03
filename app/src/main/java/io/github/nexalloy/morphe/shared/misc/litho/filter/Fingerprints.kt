@@ -120,14 +120,3 @@ val lithoThreadExecutorFingerprint = fingerprint {
 val emptyComponentClass = findClassDirect {
     emptyComponentFingerprint().declaredClass!!
 }
-
-val featureFlagCheck = findMethodDirect {
-    findMethod {
-        matcher {
-            returnType = "boolean"
-            paramTypes("long", "boolean")
-            addInvoke { paramTypes(null, "long", "boolean") }
-        }
-    }.single()
-}
-

@@ -11,7 +11,7 @@ import app.morphe.extension.shared.Utils
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import io.github.libxposed.api.XposedInterface.Hooker
+import io.github.libxposed.api.XposedInterface.PRIORITY_DEFAULT
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.InvocationTargetException
@@ -21,7 +21,10 @@ import java.util.WeakHashMap
 typealias IScopedHookCallback = ScopedHookParam.(MethodHookParam) -> Unit
 typealias IHookCallback = (MethodHookParam) -> Unit
 
+fun <T> Array<T>.atLast(index: Int) = this[this.size - index]
+
 private val proxyRef = WeakHashMap<Any, Any>()
+
 /*
  * Bind a proxy to the implement's lifecycle via WeakHashMap.
  *
@@ -42,7 +45,7 @@ internal fun <TImpl> TImpl.bindProxy(proxy: Any) {
  *
  * WARN: Capturing the host instance directly in the closure will create a strong-reference loop and cause memory leaks.
  * */
-internal inline fun <reified TProxy: Any, TImpl> TImpl.createProxy(crossinline createProxy: (impl: WeakReference<TImpl>) -> TProxy): TProxy {
+internal inline fun <reified TProxy : Any, TImpl> TImpl.createProxy(crossinline createProxy: (impl: WeakReference<TImpl>) -> TProxy): TProxy {
     val hostRef = WeakReference(this)
     val proxy = createProxy(hostRef)
     this.bindProxy(proxy)
@@ -50,6 +53,7 @@ internal inline fun <reified TProxy: Any, TImpl> TImpl.createProxy(crossinline c
 }
 
 class HookDsl<TCallback>(emptyCallback: TCallback) {
+    var priority: Int = PRIORITY_DEFAULT
     var before: TCallback = emptyCallback
     var after: TCallback = emptyCallback
 
@@ -62,19 +66,21 @@ class HookDsl<TCallback>(emptyCallback: TCallback) {
     }
 }
 
-fun Member.hookMethod(cb: Hooker) {
+fun Member.hookMethod(cb: XC_MethodHook) {
     XposedBridge.hookMethod(this, cb)
 }
 
-inline fun Member.hookMethod(crossinline block: HookDsl<IHookCallback>.() -> Unit) {
+inline fun Member.hookMethod(
+    crossinline block: HookDsl<IHookCallback>.() -> Unit
+) {
     val builder = HookDsl<IHookCallback> {}.apply(block)
-    hookMethodInternal(builder.before, builder.after)
+    hookMethodInternal(builder.before, builder.after, builder.priority)
 }
 
 inline fun Member.hookMethodInternal(
-    crossinline before: IHookCallback, crossinline after: IHookCallback
+    crossinline before: IHookCallback, crossinline after: IHookCallback, priority: Int
 ) {
-    XposedBridge.hookMethod(this, object : XC_MethodHook() {
+    XposedBridge.hookMethod(this, object : XC_MethodHook(priority) {
         override fun beforeHookedMethod(param: MethodHookParam) {
             before(param)
         }

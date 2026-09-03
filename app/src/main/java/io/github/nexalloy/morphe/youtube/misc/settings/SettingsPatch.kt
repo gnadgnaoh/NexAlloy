@@ -8,6 +8,7 @@ import app.morphe.extension.youtube.settings.YouTubeActivityHook
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodReplacement
 import io.github.nexalloy.R
+import io.github.nexalloy.invokeOriginalMethod
 import io.github.nexalloy.morphe.shared.misc.initialization.initializationPatch
 import io.github.nexalloy.morphe.shared.misc.settings.preference.BasePreferenceScreen
 import io.github.nexalloy.morphe.shared.misc.settings.preference.InputType
@@ -39,7 +40,7 @@ val SettingsHook = patch(
                 else -> return@before
             }
 
-            param.proceed(arrayOf(xml))
+            param.invokeOriginalMethod(arrayOf(xml))
         }
     }
 

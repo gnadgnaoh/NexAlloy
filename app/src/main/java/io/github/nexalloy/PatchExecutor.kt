@@ -12,6 +12,7 @@ import android.webkit.WebView
 import app.morphe.extension.shared.Logger
 import app.morphe.extension.shared.ResourceUtils
 import app.morphe.extension.shared.Utils
+import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import io.github.libxposed.api.XposedInterface
@@ -58,7 +59,7 @@ class Patch(
 abstract class IHook(val xposed: XposedInterface) : XposedInterface by xposed {
     abstract val classLoader: ClassLoader
 
-    fun DexMethod.hookMethod(callback: Hooker) {
+    fun DexMethod.hookMethod(callback: XC_MethodHook) {
         toMember().hookMethod(callback)
     }
 
@@ -336,7 +337,7 @@ class PatchExecutor(
         dexMethod.hookMethod(block)
     }
 
-    fun KProperty0<FindMethodFunc>.hookMethod(callback: Hooker) {
+    fun KProperty0<FindMethodFunc>.hookMethod(callback: XC_MethodHook) {
         dexMethod.hookMethod(callback)
     }
 
@@ -370,7 +371,7 @@ class PatchExecutor(
         getDexMethod(cacheKey) { this@hookMethod.run() }.hookMethod(block)
     }
 
-    fun Fingerprint.hookMethod(callback: Hooker) {
+    fun Fingerprint.hookMethod(callback: XC_MethodHook) {
         getDexMethod(cacheKey) { this@hookMethod.run() }.hookMethod(callback)
     }
 

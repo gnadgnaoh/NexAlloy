@@ -33,7 +33,6 @@ class MainHook : XposedModule() {
         if (!param.isFirstPackage) return
         if (!shouldHook(param.packageName)) return
         this.param = param
-        XposedBridge.register(this)
 
         inContext(param) { app ->
             this.app = app

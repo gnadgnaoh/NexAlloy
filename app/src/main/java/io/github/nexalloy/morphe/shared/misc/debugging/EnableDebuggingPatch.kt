@@ -10,6 +10,7 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScree
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference.Sorting
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.patch
+import io.github.nexalloy.atLast
 
 fun enableDebuggingPatch(
     hookStringFeatureFlag: PatchExecutor.() -> Boolean,
@@ -57,7 +58,7 @@ fun enableDebuggingPatch(
         after {
             it.result = EnableDebuggingPatch.isBooleanFeatureFlagEnabled(
                 it.result as Boolean,
-                it.args[1] as Long
+                it.args.atLast(2) as Long
             )
         }
     }
@@ -67,8 +68,8 @@ fun enableDebuggingPatch(
             after {
                 it.result = EnableDebuggingPatch.isDoubleFeatureFlagEnabled(
                     it.result as Double,
-                    it.args[1] as Long,
-                    it.args[2] as Double
+                    it.args.atLast(2) as Long,
+                    it.args.atLast(1) as Double
                 )
             }
         }
@@ -79,8 +80,8 @@ fun enableDebuggingPatch(
             after {
                 it.result = EnableDebuggingPatch.isLongFeatureFlagEnabled(
                     it.result as Long,
-                    it.args[1] as Long,
-                    it.args[2] as Long
+                    it.args.atLast(2) as Long,
+                    it.args.atLast(1) as Long
                 )
             }
         }
@@ -91,8 +92,8 @@ fun enableDebuggingPatch(
             after {
                 it.result = EnableDebuggingPatch.isStringFeatureFlagEnabled(
                     it.result as String,
-                    it.args[1] as Long,
-                    it.args[2] as String
+                    it.args.atLast(2) as Long,
+                    it.args.atLast(1) as String
                 )
             }
         }
