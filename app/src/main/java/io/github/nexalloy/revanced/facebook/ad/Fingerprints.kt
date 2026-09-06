@@ -9,6 +9,7 @@ import org.luckypray.dexkit.query.enums.MatchType
 import org.luckypray.dexkit.result.ClassData
 import org.luckypray.dexkit.result.MethodData
 import java.lang.reflect.Modifier
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Mirrors upstream's post-resolution filter used in resolveFeedCsrFilterMethods,
@@ -704,6 +705,75 @@ private val ORGANIC_COMPONENT_MARKERS = listOf(
 private fun MethodData.isRenderShaped(): Boolean =
     !isConstructor && returnTypeName !in NON_RENDER_RETURN_TYPES
 
+// ─── Hàng rào class dùng chung ────────────────────────────────────────────────
+//
+// [ORGANIC_COMPONENT_MARKERS] ở trên là một danh sách CẤM: nó chặn được đúng những cái tên
+// đã có người gặp và ghi lại. Phần dưới đây làm việc mà danh sách đó không làm nổi — nhận
+// ra một class dùng chung MÀ KHÔNG cần biết trước tên nào trong nó.
+//
+// Vì sao cần: [adRenderMethodsFor] khớp ở mức CLASS, và `usingStrings` của DexKit mặc định
+// là StringMatchType.Contains. Nên chỉ cần MỘT chuỗi trong class khớp một tag là cả class
+// bị kéo vào, rồi mọi method 1-tham-số trả về kiểu render của nó bị ép trả null.
+//
+// Trên bản FB 2026-08 điều đó đã xảy ra thật, và đây là số liệu đo được khi quét literal
+// của cả 210 class thực sự bị hook:
+//
+//   - Component quảng cáo thật: 0-2 tên component lạ. Cao nhất là X.bJG với 2 tên
+//     (PostLoopDeferredCardComponent, PostLoopDeferredComponent).
+//   - X.PyD: **141** tên lạ — MlePostsSection, EventsProfileTabSection, MusicFullListSection,
+//     RoomsInviteeCandidatesSection, ProfileProtilesSection, StagingGroundOptionsSection…
+//
+// X.PyD là class render dùng chung của 142 Litho Section. Nó lọt lưới chỉ vì trong 142 cái
+// tên đó có một chuỗi khớp tag "SearchResultsSponsoredMultiStorySection". Ép A3Q của nó trả
+// null là làm trắng cả 142 section, trong đó có StagingGroundOptionsSection — tên nội bộ
+// Facebook đặt cho luồng đặt ảnh đại diện. Triệu chứng: màn "Xem trước ảnh đại diện" trắng
+// trơn, không crash, không log gì.
+//
+// Không có class nào nằm giữa 2 và 141, nên ngưỡng đặt ở đâu trong khoảng đó cũng cho cùng
+// kết quả. Để ở 2 vì đó là mức cao nhất quan sát được ở một component quảng cáo thật.
+private const val MAX_FOREIGN_COMPONENT_LITERALS = 2
+
+/** Token cho biết một tên component là của quảng cáo. So khớp theo TOKEN CamelCase chứ
+ *  KHÔNG theo chuỗi con — "Ad" mà so kiểu chuỗi con thì khớp cả Thread, Header, Adapter,
+ *  Load, và hàng rào này sẽ không bao giờ từ chối ai. */
+private val AD_NAME_TOKENS = setOf(
+    "Ad", "Ads", "Advert", "Advertisement", "Sponsor", "Sponsored", "Sponsorship",
+    "Promotion", "Promo", "Monetization", "Monetize", "Commercial", "Neko",
+    "Quicksilver", "Instream", "AdBreak"
+)
+
+private val COMPONENT_LITERAL =
+    Regex("""^[A-Za-z][A-Za-z0-9_.]{3,90}(?:Component|ComponentSpec|Spec|Section|Sections)$""")
+
+private fun String.camelTokens(): List<String> =
+    substringAfterLast('.').split(Regex("(?<!^)(?=[A-Z])"))
+
+private fun String.looksAdRelated(): Boolean = camelTokens().any { it in AD_NAME_TOKENS }
+
+private val foreignLiteralCache = ConcurrentHashMap<String, List<String>>()
+
+/** Tên component/section mà class này mang nhưng KHÔNG phải của quảng cáo. */
+private fun foreignComponentLiterals(cls: ClassData): List<String> =
+    foreignLiteralCache.getOrPut(cls.descriptor) {
+        runCatching {
+            cls.methods.asSequence()
+                .flatMap { runCatching { it.usingStrings.asSequence() }.getOrDefault(emptySequence()) }
+                .filter { COMPONENT_LITERAL.matches(it) }
+                .distinct()
+                .filterNot { it.looksAdRelated() }
+                .toList()
+        }.getOrDefault(emptyList())
+    }
+
+/**
+ * Loại các class render dùng chung khỏi tập ứng viên.
+ *
+ * Chi phí đo trên bản FB 2026-08: 72ms cho 204 class ở tầng component, 20ms cho 6 class ở
+ * tầng section. Chỉ chạy một lần, lúc resolve fingerprint (cache miss).
+ */
+private fun rejectMultiNameClasses(candidates: List<ClassData>): List<ClassData> =
+    candidates.filter { foreignComponentLiterals(it).size <= MAX_FOREIGN_COMPONENT_LITERALS }
+
 /**
  * Every class that uses at least one of [tags], found in a SINGLE native pass.
  *
@@ -791,13 +861,15 @@ private fun DexKitBridge.renderReturnTypeFrom(seedTags: List<String>): String? =
  * in-player banner is exactly that: its render carries no string at all, the tag sits in
  * an eleven-argument setup method on the same class.
  *
- * Class-level matching is looser, so the result is narrowed twice: the method must return
- * the render type derived above (which excludes the string-table classes), and
- * [rejectSharedFeedComponents] drops anything that also renders organic content.
+ * Class-level matching is looser, so the result is narrowed three times:
+ * [rejectMultiNameClasses] drops classes that render more than a couple of non-ad
+ * components, the method must return the render type derived above (which excludes the
+ * string-table classes), and [rejectSharedFeedComponents] drops anything that also renders
+ * organic content.
  */
 private fun DexKitBridge.adRenderMethodsFor(tags: List<String>, seedTags: List<String>): List<MethodData> {
     val renderType = renderReturnTypeFrom(seedTags) ?: return emptyList()
-    val methods = classesUsingAnyOf(tags).flatMap { cls ->
+    val methods = rejectMultiNameClasses(classesUsingAnyOf(tags)).flatMap { cls ->
         cls.methods.filter { it.paramTypeNames.size == 1 && it.returnTypeName == renderType }
     }.filter { it.isRenderShaped() }.distinctBy { it.descriptor }
     return rejectSharedFeedComponents(methods)
@@ -1000,6 +1072,7 @@ val AD_SURFACE_RENDER_TAGS = listOf(
     "CommentAdsCTAAttachment",
     "CommentAdsCTAProfilePicture",
     // Search results sponsored stories, beyond the attachment tags already listed.
+    "SearchResultsSponsoredMultiStoryItem",
     "SearchResultsSponsoredStoryCallToActionAttachment",
     "SearchResultsSponsoredStoryCallToActionButtonComponentSpec",
     // Watch feed sponsored rows. Both classes are ad-only: their own logging
@@ -1261,6 +1334,15 @@ val AD_SECTION_TAGS = listOf(
     // know" rail, which is a suggestion rather than an advertisement. The AdActivity
     // sections are absent for the same reason as their components.
     "WatchFeedRealTimeIntentAdHScrollSection",
+    // Tag này KHÔNG còn hook được gì trên bản FB 2026-08, và đó là chủ ý.
+    //
+    // Chuỗi của nó nằm trong X.PyD — class render dùng chung của 142 Section, xem phần ghi
+    // chú ở [MAX_FOREIGN_COMPONENT_LITERALS]. [rejectMultiNameClasses] loại X.PyD, nên tag
+    // ở lại đây vô hại; nếu bản FB sau tách section này ra class riêng thì nó tự có tác
+    // dụng trở lại mà không phải sửa gì.
+    //
+    // ĐỪNG xoá nó rồi thay bằng một tag "chính xác hơn" đọc từ jadx: vấn đề không nằm ở
+    // tên tag mà ở chỗ class đích là class gộp.
     "SearchResultsSponsoredMultiStorySection",
     // Hai tag này ĐANG hoạt động, và suýt nữa thì bị xoá.
     //
@@ -1316,7 +1398,13 @@ val storyAdComponentRenderMethodsFingerprint = findMethodListDirect {
         }
     }.getOrDefault(emptyList()).filter { it.isRenderShaped() }.distinctBy { it.descriptor }
 
-    rejectSharedFeedComponents(methods)
+    // Cùng hàng rào như [adRenderMethodsFor]. Tầng này khớp theo cấu trúc (class có field
+    // AdStory) nên đã hẹp sẵn, nhưng một class gộp vẫn có thể mang field đó.
+    val safeClasses = rejectMultiNameClasses(
+        methods.mapNotNull { it.declaredClass }.distinctBy { it.descriptor }
+    ).mapTo(mutableSetOf()) { it.name }
+
+    rejectSharedFeedComponents(methods.filter { it.className in safeClasses })
 }
 
 /**
@@ -1371,6 +1459,15 @@ val timelineStoryRenderMethodFingerprint = findMethodDirect {
  * Matched only by its own literal, with no shape constraint, because it is reached through
  * a Kotlin lambda (`invoke(): Object`) rather than a named method, so parameter and return
  * types say nothing useful about it.
+ *
+ * KHÔNG ĐƯỢC DÙNG trên bản FB 2026-08 — [HideFacebookAdComponents] đang tắt nó, xem chú
+ * thích ở đó. Chính cái lý do khiến fingerprint này không ràng buộc hình dạng ("kiểu trả
+ * về chẳng nói lên điều gì") cũng là lý do khiến việc ép nó trả null không an toàn: nó
+ * khớp đúng một `Function0` dùng chung, và caller của Function0 đó là ai thì không ai
+ * biết. Kết quả đo được: đăng status và chia sẻ bài đều treo.
+ *
+ * Fingerprint vẫn giữ ở đây vì bản thân nó không sai — chỉ có việc dùng nó với
+ * [hookAdQueryFetch] là sai.
  */
 val searchAiModeAdsQueryFingerprint = findMethodListDirect {
     findMethod {
