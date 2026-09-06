@@ -2,6 +2,7 @@ package io.github.nexalloy
 
 import io.github.nexalloy.hoodles.morphe.alltrails.AllTrailsPatches
 import io.github.nexalloy.hoodles.morphe.protonvpn.ProtonVpnPatches
+import io.github.nexalloy.v4n1x.morphe.soundcloud.SoundCloudPatches
 import io.github.nexalloy.morphe.google.GoogleDiscoverPatches
 import io.github.nexalloy.morphe.music.YTMusicPatches
 import io.github.nexalloy.morphe.reddit.RedditPatches
@@ -15,6 +16,7 @@ import io.github.nexalloy.revanced.strava.StravaPatches
 import io.github.nexalloy.revanced.zalo.ZaloPatches 
 import io.github.nexalloy.morphe.twitter.TwitterPatches
 import io.github.nexalloy.morphe.twitter.utils.Constants.PACKAGE_NAME as TWITTER_PACKAGE_NAME
+import io.github.nexalloy.v4n1x.morphe.soundcloud.shared.Constants.PACKAGE_NAME as SOUNDCLOUD_PACKAGE_NAME
 
 enum class DexSource { APK_PATH, CLASS_LOADER }
 
@@ -37,6 +39,7 @@ val appPatchConfigurations = listOf(
     AppPatchInfo("Threads", "com.instagram.barcelona", ThreadsPatches),
     AppPatchInfo("Strava", "com.strava", StravaPatches),
     AppPatchInfo("AllTrails", "com.alltrails.alltrails", AllTrailsPatches),
+    AppPatchInfo("SoundCloud", SOUNDCLOUD_PACKAGE_NAME, SoundCloudPatches),
     AppPatchInfo("Facebook", "com.facebook.katana", FacebookPatches, DexSource.CLASS_LOADER),
     AppPatchInfo("Google (Discover)", "com.google.android.googlequicksearchbox", GoogleDiscoverPatches),
     AppPatchInfo("Twitter/X", TWITTER_PACKAGE_NAME, TwitterPatches),
