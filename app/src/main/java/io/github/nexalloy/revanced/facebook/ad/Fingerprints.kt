@@ -1000,7 +1000,6 @@ val AD_SURFACE_RENDER_TAGS = listOf(
     "CommentAdsCTAAttachment",
     "CommentAdsCTAProfilePicture",
     // Search results sponsored stories, beyond the attachment tags already listed.
-    "SearchResultsSponsoredMultiStoryItem",
     "SearchResultsSponsoredStoryCallToActionAttachment",
     "SearchResultsSponsoredStoryCallToActionButtonComponentSpec",
     // Watch feed sponsored rows. Both classes are ad-only: their own logging
